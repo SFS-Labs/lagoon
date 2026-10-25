@@ -1,0 +1,58 @@
+name: Forward public activity
+on:
+  push:
+  pull_request:
+    types: [opened, edited, synchronize, closed, reopened, ready_for_review, converted_to_draft]
+  issues:
+    types: [opened, edited, closed, reopened]
+  release:
+    types: [published]
+  create:
+  delete:
+
+permissions: {}
+
+jobs:
+  forward:
+    if: github.repository_owner == 'SFS-Labs' && github.repository != 'SFS-Labs/ai-docs' && github.event.repository.private == false && vars.ACTIVITY_FORWARDING_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      # No checkout, repository code, PR head, shell interpolation or AI inference.
+      - name: Dispatch allowlisted metadata pointers
+        env:
+          DOCS_SYNC_TOKEN: ${{ secrets.DOCS_SYNC_TOKEN }}
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request
+          from pathlib import Path
+          token=os.environ.get('DOCS_SYNC_TOKEN')
+          if not token:
+              raise SystemExit('DOCS_SYNC_TOKEN is not configured')
+          raw=json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text())
+          repo=raw['repository']
+          allowed={919086249,1355427037,1355427517,1355429181,1355431479,1407191802,1428738270,1431667912}
+          if repo['id'] not in allowed or repo.get('private') is not False:
+              raise SystemExit('Source not permitted')
+          event=os.environ['GITHUB_EVENT_NAME']
+          p={'schema':1,'repository':repo['full_name'],'repository_id':repo['id'],
+             'event':event,'action':raw.get('action',event),'run_id':int(os.environ['GITHUB_RUN_ID'])}
+          if event in ('issues','pull_request'):
+              obj=raw.get('issue') or raw.get('pull_request')
+              p['number']=obj['number']
+              p['timestamp']=obj['updated_at']
+          if event=='release':
+              p['release_id']=raw['release']['id']
+              p['timestamp']=raw['release']['published_at']
+          if event in ('create','delete'):
+              p.update(ref=raw['ref'],ref_type=raw['ref_type'])
+          body=json.dumps({'event_type':'activity','client_payload':p}).encode()
+          request=urllib.request.Request('https://api.github.com/repos/SFS-Labs/ai-docs/dispatches',data=body,
+              headers={'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json',
+                       'X-GitHub-Api-Version':'2022-11-28','Content-Type':'application/json'},method='POST')
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self,*args,**kwargs): return None
+          with urllib.request.build_opener(NoRedirect).open(request,timeout=30) as response:
+              if response.status!=204: raise SystemExit('Dispatch not accepted')
+          print('Dispatch accepted; receiver persistence and GitBook publication require separate verification.')
+          PY
