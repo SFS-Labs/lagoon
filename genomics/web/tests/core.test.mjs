@@ -63,16 +63,15 @@ test("curated web registry has ten candidates and distinct normalized SNP IDs",(
  assert.equal(new Set(EVIDENCE.map(x=>x.rsid)).size,10);
 });
 
-test("the observed MyHeritage GG call is a lookup, never an invented iron risk",async()=>{
- const data=await parseArray(make(header+"rs855791\t22\t37462936\tGG\n"));
- const result=searchImportedSnps(data,"rs855791, rs601338, rs855791");
+test("synthetic SNP lookup does not generate personal risk inference",async()=>{
+ const data=await parseArray(make(header+"rs900000001\\t22\\t37462936\\tGG\\n".replace(/\\\\t/g,"\\t").replace(/\\\\n/g,"\\n"));
+ const result=searchImportedSnps(data,"rs900000001, rs900000002, rs900000001");
  assert.equal(result.looked_up,2);assert.equal(result.matched,1);
  assert.equal(result.variants[0].genotype,"GG");
  assert.equal(result.variants[0].status,"ARRAY_CALL_UNVERIFIED");
  assert.equal(result.variants[1].status,"NOT_GENOTYPED");
  assert.ok(!JSON.stringify(result).includes("individual_risk"));
 });
-
 test("malformed identifiers and insertion-deletion alleles are separately counted",async()=>{
  const data=await parseArray(make(header+
    "rs1\t1\t100\tAA\n"+
@@ -109,6 +108,6 @@ test("all local variant searches perform no fetch calls",async()=>{
  const data=await parseArray(make(header+"rs855791\t22\t100\tGG\n"));
  const prior=globalThis.fetch;
  globalThis.fetch=()=>{throw Error("Unexpected network call");};
- try{assert.equal(searchImportedSnps(data,"rs855791").variants[0].genotype,"GG");}
+ try{assert.equal(searchImportedSnps(data,"rs900000001").variants[0].genotype,"GG");}
  finally{globalThis.fetch=prior;}
 });
