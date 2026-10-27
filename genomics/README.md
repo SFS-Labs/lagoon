@@ -145,7 +145,7 @@ acceptance criteria. Optional open-source research federation:
 with optional keys for rate improvements. Its integration has not been tested
 in this repository.
 
-## Research-engine V2 — eight MCP tools
+## Research-engine V3 — nine MCP tools and a mobile-first PWA
 
 The standard-library MCP server now exposes:
 
@@ -156,7 +156,8 @@ The standard-library MCP server now exposes:
 5. `inspect_private_genomic_input`
 6. `audit_quantitative_gwas_record`
 7. `answer_micronutrient_genetic_question`
-8. `lookup_public_variant_evidence`
+8. `inspect_gwas_study_allele_evidence`
+9. `lookup_public_variant_evidence`
 
 For the representative question, call `answer_micronutrient_genetic_question` with
 `{"nutrient":"all"}` only after `GENOMICS_RAW_FILE` is configured with a
@@ -189,3 +190,37 @@ Plasmole and Elicit calls and the precise free-tier restriction.
 Regression: `python -m unittest discover -s genomics/tests -v`.
 All automated tests use synthetic data. The public live API probe
 contains only an rsID and no individual genotypes.
+
+## Zero-credit mobile deployment, not native mobile MCP
+
+The 100% free, personal-DNA-private path is the client-only site in
+`genomics/web/`. A separate `gh-pages` branch contains **only** its
+HTML/CSS/JS/manifest/service-worker assets. The branch has no genotype files
+and was built from the default-branch ancestry rather than PR genotype-report commits.
+
+The owner still needs to enable GitHub Pages under
+`https://github.com/SFS-Labs/lagoon/settings/pages` → Deploy from a branch
+→ `gh-pages` → `/(root)` → Save. **Do not claim the URL is live
+until deployment is confirmed.** GitHub Pages for public repositories and
+public Actions workflows require no incremental monetary plan.
+
+Safari on iPhone opens the selected MyHeritage/23andMe SNP file through
+a local file picker. `File.stream()` handles up to 80 MiB with
+a 1.5-million-row guard. All 609,346 synthetic rows completed in CI;
+this is **not** a run on the user's original private file.
+
+Zero network uploads, no file persistence, no cookies, CSP `connect-src 'none'`,
+and the service worker caches only app code. A separate button deliberately
+copies an *individual subset* to the clipboard, which can then be pasted
+into ChatGPT. Clinical scores and unharmonized effect directions are omitted.
+
+CI cross-checks the independent Python and JavaScript implementations
+against the same synthetic array for QC and present/absent markers.
+Live GWAS v2 evidence retrieval is separately backed by `genomics/harmonization.py`;
+study-strand orientation remains unresolved, even when a public Ensembl
+coordinate match is available.
+
+Cloudflare billing API returned HTTP 403, so no Cloudflare Worker/DB
+was created or upgraded. An authenticated personal-genome remote MCP
+and direct custom-MCP access in native iPhone ChatGPT are NOT delivered.
+See [the exact no-cost deployment plan](ZERO_COST_DEPLOYMENT.md).
