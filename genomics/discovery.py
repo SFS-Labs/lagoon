@@ -60,24 +60,52 @@ def scan_trait_calls(calls: dict, trait: str, pages: int = 2) -> dict:
             inspected += 1
             if not isinstance(association, dict):
                 continue
-            # Limit selection to explicit rsID-bearing fields, not generic prose.
-            identifier_fields = [v for k, v in association.items()
-                                 if isinstance(v, str) and ("rs" in k.lower() or "snp" in k.lower()
-                                                            or "variant" in k.lower()
-                                                            or "strongest" in k.lower())]
-            for v in identifier_fields:
-                for rsid in set(match.lower() for match in _RS.findall(v)):
-                    if rsid in calls:
-                        found.setdefault(rsid, {
-                            "rsid": rsid, "observed_genotype": calls[rsid]["genotype"],
-                            "chromosome": calls[rsid]["chromosome"],
-                            "position": calls[rsid]["position"],
-                            "effect": "NOT_HARMONIZED",
-                            "candidate_status": "EXPLORATORY_ONLY_REQUIRES_STUDY_REVIEW",
-                            "association_ids": []})
-                        aid = association.get("id") or association.get("accessionId")
-                        if aid and len(found[rsid]["association_ids"]) < 8:
-                            found[rsid]["association_ids"].append(str(aid)[:120])
+            # Verified GWAS Catalog REST v2 schema: rsIDs are inside
+            # snp_allele: [{"rs_id": "rs855791", "effect_allele": "G"}].
+            # snp_effect_allele may contain ["rs855791-G"]. It reflects a
+            # study allele convention, NOT a harmonized GRCh37 forward allele.
+            if association.get("multi_snp_haplotype") or association.get("snp_interaction"):
+                continue
+            variants = set()
+            for row in association.get("snp_allele", []):
+                if isinstance(row, dict):
+                    value = row.get("rs_id")
+                    if isinstance(value, str) and _RS.fullmatch(value):
+                        variants.add(value.lower())
+            for value in association.get("snp_effect_allele", []):
+                if isinstance(value, str):
+                    for match in _RS.findall(value):
+                        variants.add(match.lower())
+            # Compatibility only for known flat formats returned by some
+            # upstream fixtures; never scan arbitrary narrative text.
+            for key in ("rs_id", "rsId", "variant_id"):
+                value = association.get(key)
+                if isinstance(value, str) and _RS.fullmatch(value):
+                    variants.add(value.lower())
+            for rsid in sorted(variants):
+                if rsid not in calls:
+                    continue
+                found.setdefault(rsid, {
+                    "rsid": rsid, "observed_genotype": calls[rsid]["genotype"],
+                    "chromosome": calls[rsid]["chromosome"],
+                    "position": calls[rsid]["position"],
+                    "effect": "NOT_HARMONIZED",
+                    "candidate_status": "EXPLORATORY_ONLY_REQUIRES_STUDY_REVIEW",
+                    "association_ids": [],
+                    "source_pmids": [],
+                    "study_accessions": [],
+                    "source_provider": "GWAS Catalog v2",
+                })
+                selected = found[rsid]
+                association_id = association.get("association_id") or association.get("id")
+                if association_id and len(selected["association_ids"]) < 8:
+                    selected["association_ids"].append(str(association_id)[:120])
+                pmid = association.get("pubmed_id")
+                if pmid and str(pmid) not in selected["source_pmids"]:
+                    selected["source_pmids"].append(str(pmid)[:25])
+                study = association.get("accession_id")
+                if study and str(study) not in selected["study_accessions"]:
+                    selected["study_accessions"].append(str(study)[:40])
     return {
         "requested_trait": trait, "query": _ALLOWED[trait],
         "provider": "GWAS Catalog v2, curated top associations only",
@@ -85,6 +113,6 @@ def scan_trait_calls(calls: dict, trait: str, pages: int = 2) -> dict:
         "page_budget_exhausted": completed == pages and bool(associations),
         "raw_input_not_uploaded": True,
         "no_match_means": "No match in the retrieved subset, NOT no genetic association",
-        "statistical_limit": "Effect allele, study population, p value, CI, LD and ancestry unverified",
+        "statistical_limit": "Effect allele, reported model, CI, LD, case definition and ancestry NOT harmonized",
         "matched_candidates": list(found.values())[:100],
     }
