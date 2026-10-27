@@ -36,7 +36,7 @@ export async function parseArray(file,{onProgress=()=>{},maxBytes=MAX_BYTES,maxR
   if(!file||!Number.isFinite(file.size)||file.size<=0||file.size>maxBytes)
     throw Error("Missing/oversized file (max 80 MiB); no data uploaded.");
   if(typeof file.stream!=="function")throw Error("File.stream unavailable; unsupported browser.");
-  const calls=new Map(),conflicts=new Set(),qc=makeQC(),decoder=new TextDecoder("utf-8",{fatal:true});
+  const calls=new Map(),noCalls=new Set(),conflicts=new Set(),qc=makeQC(),decoder=new TextDecoder("utf-8",{fatal:true});
   const reader=file.stream().getReader();
   let buf="",read=0,header=null,completed=false;
   function line(raw){
@@ -72,7 +72,7 @@ export async function parseArray(file,{onProgress=()=>{},maxBytes=MAX_BYTES,maxR
     if(!RS.test(id)){reject("non_rsid_marker");return;}
     if(!CHR.test(chr)){reject("invalid_chromosome");return;}
     if(!Number.isSafeInteger(pos)||pos<1||pos>300_000_000){reject("invalid_position");return;}
-    if(geno==="--"||geno==="00"){qc.no_calls++;return;}
+    if(geno==="--"||geno==="00"){qc.no_calls++;if(!calls.has(id))noCalls.add(id);return;}
     if(/^[ID]{1,2}$/.test(geno)){reject("non_snv_indel");return;}
     if(!GT.test(geno)){reject("unsupported_alleles");return;}
     if(geno.length===1)qc.haploid++;
@@ -83,6 +83,7 @@ export async function parseArray(file,{onProgress=()=>{},maxBytes=MAX_BYTES,maxR
       calls.delete(id);conflicts.add(id);qc.conflicts++;
       qc.chromosomeCounts[current.chr]=Math.max(0,(qc.chromosomeCounts[current.chr]??1)-1);return;
     }
+    noCalls.delete(id);
     calls.set(id,{chr,pos,gt:geno});
     qc.chromosomeCounts[chr]=(qc.chromosomeCounts[chr]??0)+1;
     qc.valid++;
@@ -116,7 +117,7 @@ export async function parseArray(file,{onProgress=()=>{},maxBytes=MAX_BYTES,maxR
       :(accounted===qc.rows?"Alle Datenzeilen vollständig klassifiziert.":"Summendifferenz untersuchen.");
     qc.completed=completed;
     onProgress(100);
-    return {calls,qc,conflictCount:conflicts.size};
+    return {calls,noCalls,qc,conflictCount:conflicts.size};
   }finally{try{await reader.cancel();}catch{}}
 }
 export const EVIDENCE=[
@@ -142,7 +143,7 @@ export function makeCandidateReport(dataset, nutrient="all"){
       const found=dataset.calls.get(x.rsid);
       return {rsid:x.rsid,gene:x.gene,endpoint:x.endpoint,mechanism:x.category,
         genotype:found?.gt??null,chromosome:found?.chr??null,position:found?.pos??null,
-        status:found?"ARRAY_CALL_UNVALIDATED":"NOT_GENOTYPED",source:x.source,
+        status:found?"ARRAY_CALL_UNVALIDATED":(dataset.noCalls?.has(x.rsid)?"ARRAY_NO_CALL":"NOT_ON_ARRAY"),source:x.source,
         interpretation:"Population evidence only. No individual risk or absorption diagnosis."};
     }),
     excluded_inferences:["Unknown SNPs do not imply reference genotype.",
@@ -171,7 +172,7 @@ export function searchImportedSnps(dataset, input, {max=100}={}){
     variants:unique.map(rsid=>{
        const v=dataset.calls.get(rsid);
        return {rsid,genotype:v?.gt??null,chromosome:v?.chr??null,position:v?.pos??null,
-         status:v?"ARRAY_CALL_UNVERIFIED":"NOT_GENOTYPED",
+         status:v?"ARRAY_CALL_UNVERIFIED":(dataset.noCalls?.has(rsid)?"ARRAY_NO_CALL":"NOT_ON_ARRAY"),
          study_search_url:"https://www.ebi.ac.uk/gwas/search?query="+rsid,
          reference_search_url:"https://grch37.ensembl.org/Homo_sapiens/Variation/Explore?v="+rsid};
     }),
