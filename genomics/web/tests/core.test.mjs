@@ -24,7 +24,8 @@ test("rejects conflicting duplicate calls and excludes conflicted rsID",async()=
 test("No-Call cannot masquerade as healthy wild type",async()=>{
  const res=await parseArray(make(header+"rs601338\t19\t1000\t--\nrs855791\t22\t1001\tCT\n"));
  assert.equal(res.qc.no_calls,1);
- assert.equal(makeCandidateReport(res,"b12").candidates.find(x=>x.rsid==="rs601338").status,"NOT_GENOTYPED");
+ assert.equal(makeCandidateReport(res,"b12").candidates.find(x=>x.rsid==="rs601338").status,"ARRAY_NO_CALL");
+ assert.ok(res.noCalls.has("rs601338"));
 });
 test("Genome build not confirmed blocks candidate effect interpretation",async()=>{
  const res=await parseArray(make("rsid,chromosome,position,genotype\nrs601338,19,1000,AA\n"));
@@ -69,7 +70,7 @@ test("synthetic SNP lookup does not generate personal risk inference",async()=>{
  assert.equal(result.looked_up,2);assert.equal(result.matched,1);
  assert.equal(result.variants[0].genotype,"AC");
  assert.equal(result.variants[0].status,"ARRAY_CALL_UNVERIFIED");
- assert.equal(result.variants[1].status,"NOT_GENOTYPED");
+ assert.equal(result.variants[1].status,"NOT_ON_ARRAY");
  assert.ok(!JSON.stringify(result).includes("individual_risk"));
 });
 
@@ -111,4 +112,16 @@ test("all local variant searches perform no fetch calls",async()=>{
  globalThis.fetch=()=>{throw Error("Unexpected network call");};
  try{assert.equal(searchImportedSnps(data,"rs900000001").variants[0].genotype,"AC");}
  finally{globalThis.fetch=prior;}
+});
+
+test("same imported marker distinguishes no call from marker absent",async()=>{
+ const file=make(header+"rs900000001\t1\t100\t--\nrs900000002\t1\t200\tAC\n");
+ const data=await parseArray(file);
+ const r=searchImportedSnps(data,"rs900000001 rs900000002 rs900000003");
+ assert.deepEqual(r.variants.map(v=>v.status),["ARRAY_NO_CALL","ARRAY_CALL_UNVERIFIED","NOT_ON_ARRAY"]);
+});
+test("valid call supersedes prior raw no-call for the same rsID",async()=>{
+ const data=await parseArray(make(header+"rs900000001\t1\t100\t--\nrs900000001\t1\t100\tAC\n"));
+ assert.equal(data.noCalls.has("rs900000001"),false);
+ assert.equal(data.calls.get("rs900000001").gt,"AC");
 });
