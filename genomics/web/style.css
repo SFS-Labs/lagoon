@@ -39,3 +39,12 @@ textarea{font:inherit;resize:vertical;border-radius:8px;padding:12px;border:1px 
 .qc-details dt,.qc-details dd{margin:0}
 .qc-details dd{text-align:right;font-variant-numeric:tabular-nums}
 @media(min-width:720px){.marker-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.vault-panel{border-color:#387aa675}
+.vault-panel output{padding:10px 0;font-weight:600}
+.vault-panel input[type=password],.vault-panel input[type=file]{display:block;width:100%;min-width:0}
+.vault-panel input[type=password]{font:inherit;min-height:46px;border:1px solid #9998;border-radius:8px;padding:10px 12px}
+.vault-panel button{margin:7px 0}
+.vault-restore{margin-top:20px;padding-top:14px;border-top:1px solid #8885}
+.vault-panel [hidden]{display:none!important}
+.version{display:block;margin-top:5px}
