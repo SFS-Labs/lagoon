@@ -39,7 +39,7 @@ test("headerless standard arrays retain first SNP but cannot infer build",async(
  assert.equal(makeCandidateReport(res).status,"BUILD_NOT_VERIFIED");
 });
 test("silently malformed input refused",async()=>{
- await assert.rejects(parseArray(make("# unknown\njust bad data\n")),/Header must contain/);
+ await assert.rejects(parseArray(make("# unknown\njust bad data\n")),/Expected SNP header/);
 });
 test("file size bounded",async()=>{
  await assert.rejects(parseArray({size:80*1024*1024+1,stream(){throw Error("should not read");}}),/oversized/);
