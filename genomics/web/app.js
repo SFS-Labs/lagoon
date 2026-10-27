@@ -37,7 +37,7 @@ $("analyze").addEventListener("click",()=>{
         const td=document.createElement("td");td.textContent=text;tr.append(td);
       }
       const td=document.createElement("td"),link=document.createElement("a");
-      link.textContent="Quelle";link.href=x.source;link.target="_blank";
+      link.textContent="Recherche";link.href=x.source;link.target="_blank";
       link.rel="noopener noreferrer";td.append(link);tr.append(td);tbody.append(tr);
     }
     $("copy").disabled=false;$("save").disabled=false;
