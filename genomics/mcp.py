@@ -15,12 +15,14 @@ try:
     from .discovery import scan_trait_calls
     from .intake import inspect_input, require_array
     from .statistics import assess_study_effect
+    from .questions import answer_question
 except ImportError:
     from engine import analyze, parse_calls, research_summary, GenotypeError, EVIDENCE
     from research import query_rsid, verify_reported_locus
     from discovery import scan_trait_calls
     from intake import inspect_input, require_array
     from statistics import assess_study_effect
+    from questions import answer_question
 
 PROTOCOL = "2025-06-18"
 TOOLS = [
@@ -43,6 +45,9 @@ TOOLS = [
     {"name": "audit_quantitative_gwas_record",
      "description": "Statistically audit a caller-supplied literature effect with full fields, personal array call, external GRCh37 coordinate check and explicitly confirmed ancestry compatibility. Does NOT verify paper content or calculate individual risk.",
      "inputSchema": {"type": "object", "properties": {"record": {"type": "object"}, "ancestry_match": {"type": "boolean"}}, "required": ["record"], "additionalProperties": False}},
+    {"name": "answer_micronutrient_genetic_question",
+     "description": "Generate source-linked personal genotype candidate table for malabsorption and vitamin B12/iron/D/folate/lactose while preserving unknown genotypes, mechanism distinctions and diagnostics that SNP arrays cannot resolve.",
+     "inputSchema": {"type": "object", "properties": {"nutrient": {"type": "string", "enum": ["all", "b12", "iron", "vitamin_d", "folate", "lactose"]}}, "additionalProperties": False}},
     {"name": "lookup_public_variant_evidence",
      "description": "Retrieve live raw annotation snippets for a public rsID from GWAS Catalog v2, Ensembl GRCh37 and Europe PMC. Does not transmit DNA data; raw results are NOT effect allele-harmonised.",
      "inputSchema": {"type": "object", "properties": {"rsid": {"type": "string", "pattern": "^rs[0-9]+$"}},
@@ -135,6 +140,13 @@ def execute(name, args):
         evaluated["literature_authenticity"] = "NOT_VERIFIED_USER_SUPPLIED_METADATA"
         evaluated["clinical_validation"] = False
         return evaluated
+    if name == "answer_micronutrient_genetic_question":
+        data = source()
+        if data is None:
+            return {"status": "NO_PRIVATE_RAW_FILE",
+                    "message": "No private genotype file configured; no personal SNPs can be inferred."}
+        return answer_question(data["calls"], nutrient=args.get("nutrient", "all"),
+                               build=data["qc"]["build"])
     if name == "lookup_public_variant_evidence":
         return query_rsid(args["rsid"])
     raise ValueError("Unknown tool")
