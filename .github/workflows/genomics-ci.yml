@@ -1,0 +1,32 @@
+name: Genomics research core tests
+on:
+  pull_request:
+    paths:
+      - 'genomics/**'
+      - '.github/workflows/genomics-ci.yml'
+  push:
+    paths:
+      - 'genomics/**'
+      - '.github/workflows/genomics-ci.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Synthetic fixture tests only
+        run: python -m unittest discover -s genomics/tests -v
+      - name: Syntax compile
+        run: python -m compileall -q genomics
+      - name: MCP initialisation smoke test
+        run: |
+          printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","clientInfo":{"name":"ci","version":"1"},"capabilities":{}}}' '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' | python -m genomics.mcp mcp > /tmp/mcp-responses.jsonl
+          python -c 'import json; a=[json.loads(x) for x in open("/tmp/mcp-responses.jsonl")]; assert a[0]["result"]["serverInfo"]["name"] == "lagoon-genomics-research"; assert len(a[1]["result"]["tools"]) == 3'
