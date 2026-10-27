@@ -31,6 +31,13 @@ test("Genome build not confirmed blocks candidate effect interpretation",async()
  assert.equal(res.qc.build,"UNKNOWN");
  assert.equal(makeCandidateReport(res).status,"BUILD_NOT_VERIFIED");
 });
+test("headerless standard arrays retain first SNP but cannot infer build",async()=>{
+ const res=await parseArray(make("rs601338\t19\t1000\tAA\nrs855791\t22\t1001\tCT\n"));
+ assert.equal(res.calls.size,2);
+ assert.equal(res.qc.columns_confirmed,false);
+ assert.equal(res.qc.build,"UNKNOWN");
+ assert.equal(makeCandidateReport(res).status,"BUILD_NOT_VERIFIED");
+});
 test("silently malformed input refused",async()=>{
  await assert.rejects(parseArray(make("# unknown\njust bad data\n")),/Header must contain/);
 });
