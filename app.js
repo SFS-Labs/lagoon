@@ -1,6 +1,6 @@
-import {parseArray,makeCandidateReport,searchImportedSnps} from "./analysis-core.mjs?v=6";
-import {encryptGenome,decryptGenome,saveEncryptedGenome,readSavedGenome,deleteSavedGenome,
-  createVaultBackup,readVaultBackup,storageMode} from "./vault.mjs?v=6";
+import {parseArray,makeCandidateReport,searchImportedSnps} from "./analysis-core.mjs?v=7";
+import {rememberGenome,openRememberedGenome,hasRememberedGenome,forgetRememberedGenome,browserStorageStatus}
+  from "./device-vault.mjs?v=7";
 const $=id=>document.getElementById(id);
 let dataset=null,report=null,lookup=null;
 const de=new Intl.NumberFormat("de-DE");
@@ -78,7 +78,7 @@ $("raw").addEventListener("change",async()=>{
     const q=dataset.qc;
     message("Import erfolgreich: "+de.format(q.valid)+" SNPs, "+de.format(q.no_calls)+" No-Calls, "+
        de.format(q.rejected)+" abgewiesene Zeilen, "+de.format(q.conflicts)+" Konflikte; Referenz: "+q.build+".");
-    showQc(q);buttons(true);showSavePanel(true);
+    showQc(q);buttons(true);$("rememberGenome").disabled=false;
   }catch(e){
     dataset=null;message("Import verweigert: "+e.message);$("raw").value="";
   }finally{$("progress").hidden=true;}
@@ -137,143 +137,68 @@ $("save").addEventListener("click",()=>{
 });
 $("erase").addEventListener("click",()=>{
   dataset=null;report=null;lookup=null;$("raw").value="";$("rsSearch").value="";$("progress").value=0;
-  buttons(false);resetViews();showSavePanel(false);clearPasswords();
-  message("Diese Sitzung gesperrt. Der verschlüsselte DNA-Tresor bleibt für spätere Besuche gespeichert.");
+  buttons(false);resetViews();$("rememberGenome").disabled=true;
+  message("Aktuelle Sitzung beendet. Die dauerhaft gespeicherte DNA-Datei bleibt für den nächsten Besuch verfügbar.");
 });
 if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js").catch(()=>{});
 
 
-/* All persistence is opt-in, ciphertext-only IndexedDB. The raw genome is
- * only transiently loaded from the user-selected File or after local decrypt.
- * The password is intentionally required after every browser restart. */
-function vaultMessage(text){$("vaultStatus").textContent=text;}
-function clearPasswords(){
-  for(const id of ["vaultPassword","vaultPasswordRepeat","unlockPassword","restorePassword"])$(id).value="";
-}
-function showSavePanel(yes){
-  $("vaultSavePanel").hidden=!yes;
-  $("saveVault").disabled=!yes;
-}
-async function refreshVault(){
-  try{
-    const existing=await readSavedGenome();
-    $("vaultExistingPanel").hidden=!existing;
-    if(existing){
-      vaultMessage("Verschlüsselte DNA-Datei ist in diesem Browser gespeichert. Zum Öffnen nur das Passwort eingeben – kein neuer Dateiimport.");
-      return true;
-    }
-    vaultMessage("Noch keine dauerhaft verschlüsselte DNA-Datei auf diesem Gerät gespeichert.");
-    return false;
-  }catch(e){
-    $("vaultExistingPanel").hidden=true;
-    vaultMessage("Lokaler Tresor nicht verfügbar: "+e.message+" Verwende Safari außerhalb des In-App-Browsers.");
-    return false;
-  }
-}
-async function loadDecryptedBytes(raw){
+
+/* User chooses once: save an AES-GCM ciphertext + non-extractable CryptoKey
+ * in device-only IndexedDB. Subsequent visits automatically decrypt locally.
+ * No login prompt, cloud call, remote account, API tokens, or repeat import. */
+function vaultStatus(text){$("vaultStatus").textContent=text;}
+async function activateFromSaved(raw){
   const blob=new Blob([raw]);
-  new Uint8Array(raw).fill(0); // Best effort; immutable Blob may retain its own temporary copy.
-  const result=await parseArray(blob,{onProgress:p=>$("progress").value=p});
-  if(!result.qc.completed)throw Error("The decrypted DNA array did not finish parsing.");
-  dataset=result;resetViews();showQc(dataset.qc);buttons(true);
-  showSavePanel(false);
-  message("Gespeicherte Originaldatei lokal entschlüsselt: "+de.format(dataset.qc.valid)+
-      " SNP-Calls. Datei nicht erneut ausgewählt; kein Cloud-Zugriff.");
-  return result;
+  new Uint8Array(raw).fill(0); // best effort: WebCrypto/decrypted copies may still exist transiently
+  const loaded=await parseArray(blob,{onProgress:n=>$("progress").value=n});
+  dataset=loaded;resetViews();showQc(loaded.qc);buttons(true);
+  $("rememberGenome").disabled=true;
+  message("Automatisch aus dem lokalen Tresor geladen: "+de.format(loaded.qc.valid)+" SNPs. Keine erneute Datei erforderlich.");
+  return loaded;
 }
-$("saveVault").addEventListener("click",async()=>{
+$("rememberGenome").addEventListener("click",async()=>{
   const file=$("raw").files?.[0];
-  if(!dataset||!dataset.qc.completed||!file){
-    vaultMessage("Zuerst die Originaldatei lokal importieren.");return;
-  }
-  const pass=$("vaultPassword").value,repeated=$("vaultPasswordRepeat").value;
-  if(pass!==repeated){vaultMessage("Die Passwörter stimmen nicht überein.");return;}
+  if(!file||!dataset?.qc?.completed){vaultStatus("Bitte die Originaldatei zunächst einmal lokal einlesen.");return;}
+  if((await hasRememberedGenome()).exists && !confirm("Bisherige lokal gespeicherte DNA durch die aktuell ausgewählte Datei ersetzen?"))return;
+  $("rememberGenome").disabled=true;
   let raw;
-  $("saveVault").disabled=true;
   try{
-    if(await readSavedGenome() && !confirm("Vorhandenen verschlüsselten DNA-Tresor wirklich ersetzen? Vorher eine verschlüsselte Sicherung erstellen."))return;
-    vaultMessage("Verschlüssele die Originaldatei lokal …");
+    vaultStatus("Speichere einmalig verschlüsselt auf diesem Gerät …");
     raw=await file.arrayBuffer();
-    const archive=await encryptGenome(raw,pass);
+    const saved=await rememberGenome(raw,{build:dataset.qc.build});
     new Uint8Array(raw).fill(0);raw=null;
-    const confirmed=await saveEncryptedGenome(archive);
-    // Authenticate saved bytes with the supplied password before confirming success.
-    const plaintext=await decryptGenome(confirmed,pass);
-    new Uint8Array(plaintext).fill(0);
-    const mode=await storageMode();
-    clearPasswords();
-    await refreshVault();
-    showSavePanel(false);
-    vaultMessage("Gespeichert: Originaldatei vollständig AES-256-GCM-verschlüsselt im Browser-Tresor. "+
-      (mode.persisted?"Browser hat persistenten Speicher bestätigt.":"Persistenter Speicher nicht bestätigt; Backup ist Pflicht.")+
-      " Jetzt die verschlüsselte Backupdatei exportieren.");
+    const persistent=await browserStorageStatus();
+    vaultStatus("Dauerhaft auf diesem Gerät gespeichert. Beim nächsten Aufruf wird die DNA automatisch geladen – ohne Passwort und ohne CSV-Import. "+
+       (persistent.persistent?"Browser bestätigt persistente Speicherung.":"iOS kann Website-Daten weiterhin löschen; behalte die Originaldatei als Backup."));
+    message(de.format(dataset.qc.valid)+" SNPs lokal importiert und zur passwortlosen Wiederverwendung gespeichert.");
+  }catch(e){vaultStatus("Speicherung konnte NICHT bestätigt werden: "+e.message);}
+  finally{if(raw)new Uint8Array(raw).fill(0);$("rememberGenome").disabled=false;}
+});
+$("forgetGenome").addEventListener("click",async()=>{
+  if(!confirm("Dauerhaft gespeicherte DNA und den lokalen Entschlüsselungsschlüssel aus diesem Browser entfernen?"))return;
+  try{
+    await forgetRememberedGenome();
+    vaultStatus("Dauerhafte DNA-Speicherung gelöscht. Die aktuell geöffnete Sitzung bleibt nutzbar, bis die Seite geschlossen wird.");
+    $("rememberGenome").disabled=!$("raw").files?.[0]||!dataset;
+  }catch(e){vaultStatus("Dauerhafte Speicherung konnte nicht gelöscht werden: "+e.message);}
+});
+async function startup(){
+  $("progress").hidden=false;$("progress").value=0;
+  try{
+    const saved=await hasRememberedGenome();
+    if(!saved.exists){
+      vaultStatus("Noch keine DNA-Datei dauerhaft gespeichert. Nach einmaligem Import auf „Einmalig auf diesem Gerät merken“ tippen.");
+      return;
+    }
+    vaultStatus("Deine gespeicherte DNA wird automatisch lokal entsperrt …");
+    const unlocked=await openRememberedGenome();
+    if(!unlocked)throw Error("Keine gültige Speicherung gefunden.");
+    await activateFromSaved(unlocked.bytes);
+    vaultStatus("Gespeicherte DNA automatisch geöffnet. Du kannst direkt SNPs suchen und analysieren.");
   }catch(e){
-    vaultMessage("Speichern NICHT bestätigt: "+e.message+" Vorheriges Backup nicht löschen.");
-  }finally{
-    if(raw)new Uint8Array(raw).fill(0);
-    $("saveVault").disabled=false;
-  }
-});
-$("unlockVault").addEventListener("click",async()=>{
-  const pass=$("unlockPassword").value;
-  if(!pass){vaultMessage("Tresor-Passwort eingeben.");return;}
-  $("unlockVault").disabled=true;$("progress").hidden=false;$("progress").value=0;
-  try{
-    vaultMessage("Entschlüssele gespeicherte DNA lokal im Browser …");
-    const record=await readSavedGenome();
-    if(!record)throw Error("Keine Datei gespeichert. Importiere einmalig oder stelle ein Backup wieder her.");
-    const bytes=await decryptGenome(record,pass);
-    clearPasswords();await loadDecryptedBytes(bytes);
-    vaultMessage("Tresor entsperrt: DNA-Daten wurden aus dem lokalen verschlüsselten Speicher geladen.");
-  }catch(e){clearPasswords();vaultMessage("Entsperren fehlgeschlagen: "+e.message);}
-  finally{$("unlockVault").disabled=false;$("progress").hidden=true;}
-});
-function downloadBlob(blob,filename){
-  const href=URL.createObjectURL(blob),a=document.createElement("a");
-  a.href=href;a.download=filename;document.body.append(a);a.click();a.remove();
-  setTimeout(()=>URL.revokeObjectURL(href),10000);
+    vaultStatus("Automatisches Laden fehlgeschlagen: "+e.message+
+      " Die Originaldatei bleibt als Wiederherstellungsquelle verwendbar.");
+  }finally{$("progress").hidden=true;}
 }
-$("backupVault").addEventListener("click",async()=>{
-  try{
-    const saved=await readSavedGenome();
-    if(!saved)throw Error("Keine verschlüsselte DNA-Datei vorhanden.");
-    downloadBlob(createVaultBackup(saved),"lagoon-dna-encrypted-backup.lgv");
-    vaultMessage("Verschlüsseltes Backup vorbereitet. Sichere .lgv über Safari in der Dateien-App. Passwort separat und sicher aufbewahren.");
-  }catch(e){vaultMessage("Backup fehlgeschlagen: "+e.message);}
-});
-$("restoreVault").addEventListener("click",async()=>{
-  const file=$("restoreFile").files?.[0],pass=$("restorePassword").value;
-  if(!file||!pass){vaultMessage("Verschlüsselte .lgv-Datei und zugehöriges Passwort erforderlich.");return;}
-  let plain;
-  $("restoreVault").disabled=true;$("progress").hidden=false;$("progress").value=0;
-  try{
-    const existing=await readSavedGenome();
-    if(existing&&!confirm("Gespeicherte DNA-Datei durch dieses verschlüsselte Backup ersetzen?"))return;
-    const record=await readVaultBackup(file);
-    plain=await decryptGenome(record,pass);
-    // Validate a backup *before* overwriting an existing encrypted archive.
-    const blob=new Blob([plain]);new Uint8Array(plain).fill(0);plain=null;
-    const validated=await parseArray(blob,{onProgress:p=>$("progress").value=p});
-    if(!validated.qc.completed)throw Error("Backup raw SNP data could not be parsed.");
-    await saveEncryptedGenome(record);
-    dataset=validated;buttons(true);resetViews();showQc(dataset.qc);showSavePanel(false);
-    $("raw").value="";$("restoreFile").value="";clearPasswords();
-    const mode=await storageMode();
-    await refreshVault();
-    vaultMessage("Backup geprüft, entschlüsselt und erneut verschlüsselt im Browser-Tresor gespeichert. "+
-      (mode.persisted?"Persistenter Speicher bestätigt.":"Halte weiterhin eine externe .lgv-Sicherung bereit."));
-    message("Import aus verschlüsseltem Backup: "+de.format(dataset.qc.valid)+" SNP-Calls. Keine Original-CSV benötigt.");
-  }catch(e){vaultMessage("Wiederherstellen fehlgeschlagen: "+e.message);}
-  finally{if(plain)new Uint8Array(plain).fill(0);$("restoreVault").disabled=false;$("progress").hidden=true;}
-});
-$("deleteVault").addEventListener("click",async()=>{
-  if(!confirm("Verschlüsselten DNA-Tresor dieses Browsers endgültig löschen? Eine .lgv-Backupdatei bleibt unberührt."))return;
-  try{
-    await deleteSavedGenome();
-    dataset=null;report=null;lookup=null;
-    $("raw").value="";buttons(false);resetViews();showSavePanel(false);clearPasswords();
-    await refreshVault();
-    vaultMessage("Verschlüsselter lokaler Tresor gelöscht; exportierte Sicherungen bleiben separat erhalten.");
-  }catch(e){vaultMessage("Löschen fehlgeschlagen: "+e.message);}
-});
-refreshVault();
+startup();
