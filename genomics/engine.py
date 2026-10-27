@@ -101,57 +101,99 @@ class GenotypeError(ValueError):
     pass
 
 def parse_calls(path: str | Path) -> dict[str, Any]:
+    """Stream a consumer SNP array by named columns, with strict collision handling.
+
+    Reject headers with missing required columns. Genotypes are never sent to
+    any network service; the returned calls stay in process memory. A header
+    listing genome build must not be treated as a clinical validation.
+    """
     p = Path(path)
     if not p.is_file() or p.stat().st_size > MAX_BYTES:
         raise GenotypeError("Raw-data file missing or exceeds 80 MiB")
+    cols = None
+    delim = None
     calls: dict[str, dict[str, str]] = {}
-    problems: list[str] = []
+    conflicts: set[str] = set()
     skipped = 0
+    no_calls = 0
+    duplicates = 0
     seen_rows = 0
     build_text = ""
-    with p.open("r", encoding="utf-8-sig", errors="replace", newline="") as stream:
-        for line in stream:
-            if line.lstrip().startswith("#"):
+    with p.open("r", encoding="utf-8-sig", errors="strict", newline="") as stream:
+        for raw in stream:
+            if raw.lstrip().startswith("#"):
                 if len(build_text) < 4000:
-                    build_text += line[:250] + " "
+                    build_text += raw[:250] + " "
                 continue
-            if not line.strip():
+            if not raw.strip():
                 continue
+            sep = "\t" if "\t" in raw else ","
+            try:
+                row = next(csv.reader([raw], delimiter=sep))
+            except csv.Error as exc:
+                raise GenotypeError("Invalid delimited SNP row") from None
+            values = [x.strip() for x in row]
+            if cols is None:
+                headers = [h.lower().lstrip("#").strip() for h in values]
+                fields = {
+                    "rsid": next((i for i, h in enumerate(headers) if h in ("rsid", "snp", "snpid")), -1),
+                    "chr": next((i for i, h in enumerate(headers) if h in ("chromosome", "chr")), -1),
+                    "pos": next((i for i, h in enumerate(headers) if h in ("position", "pos")), -1),
+                    "gt": next((i for i, h in enumerate(headers) if h in ("genotype", "result", "alleles")), -1),
+                }
+                if all(v >= 0 for v in fields.values()):
+                    cols = fields
+                    delim = sep
+                    continue
+                # Headerless four-column chip dumps are allowed if the first
+                # row itself is valid; otherwise reject, never guess columns.
+                if len(values) >= 4 and RSID.fullmatch(values[0]):
+                    cols = dict(rsid=0, chr=1, pos=2, gt=3)
+                    delim = sep
+                else:
+                    raise GenotypeError("Unknown SNP file columns; expected rsid/chromosome/position/result")
             seen_rows += 1
             if seen_rows > MAX_ROWS:
                 raise GenotypeError("Too many variant rows")
-            try:
-                row = next(csv.reader([line], delimiter="\t" if "\t" in line else ","))
-                row = [v.strip().strip('"') for v in row]
-                if row and row[0].lower() in ("rsid", "rs_id", "snp"):
-                    continue
-                if len(row) < 4 or not RSID.fullmatch(row[0]):
-                    skipped += 1
-                    continue
-                rsid, chromosome, pos, allele = row[:4]
-                gt = allele.upper().replace(" ", "").replace("/", "").replace("|", "")
-                if gt in ("--", "NN", "N", "00", "-"):
-                    skipped += 1
-                    continue
-                if not re.fullmatch(r"[ACGT]{1,2}", gt):
-                    skipped += 1
-                    continue
-                if not re.fullmatch("[0-9]+", pos):
-                    skipped += 1
-                    continue
-                candidate = dict(genotype=gt, chromosome=chromosome, position=pos)
-                prior = calls.get(rsid.lower())
-                if prior and prior != candidate:
-                    problems.append(f"conflicting_call:{rsid}")
-                    calls.pop(rsid.lower(), None)
-                elif f"conflicting_call:{rsid}" not in problems:
-                    calls[rsid.lower()] = candidate
-            except (csv.Error, ValueError):
+            if sep != delim or len(values) <= max(cols.values()):
                 skipped += 1
+                continue
+            rsid = values[cols["rsid"]].lower()
+            chromosome = values[cols["chr"]].upper()
+            pos = values[cols["pos"]]
+            gt = values[cols["gt"]].upper().replace(" ", "").replace("/", "").replace("|", "")
+            if not RSID.fullmatch(rsid) or not re.fullmatch(r"(?:[1-9]|1[0-9]|2[0-2]|X|Y|M|MT)", chromosome) or not pos.isdecimal():
+                skipped += 1
+                continue
+            if not 0 < int(pos) <= 300_000_000:
+                skipped += 1
+                continue
+            if gt in ("--", "NN", "N", "00", "-"):
+                no_calls += 1
+                continue
+            if not re.fullmatch(r"[ACGT]{1,2}", gt):
+                skipped += 1
+                continue
+            if rsid in conflicts:
+                continue
+            candidate = dict(genotype=gt, chromosome=chromosome, position=pos)
+            prior = calls.get(rsid)
+            if prior:
+                if prior == candidate:
+                    duplicates += 1
+                else:
+                    conflicts.add(rsid)
+                    calls.pop(rsid, None)
+                continue
+            calls[rsid] = candidate
+    if cols is None:
+        raise GenotypeError("No SNP array header or usable data found")
     b = build_text.lower()
-    build = "GRCh37" if "build 37" in b or "grch37" in b or "hg19" in b else "GRCh38" if "build 38" in b or "grch38" in b or "hg38" in b else "unknown"
-    return dict(calls=calls, qc=dict(rows=seen_rows, valid=len(calls), skipped=skipped,
-                                    build=build, issues=problems[:50],
+    build = "GRCh37" if any(x in b for x in ("build 37", "grch37", "hg19")) else "GRCh38" if any(x in b for x in ("build 38", "grch38", "hg38")) else "unknown"
+    return dict(calls=calls, qc=dict(rows=seen_rows, valid=len(calls),
+                                    skipped=skipped, no_calls=no_calls,
+                                    duplicate_rows=duplicates, conflicts=len(conflicts),
+                                    build=build, issues=[f"conflicting_call:{r}" for r in sorted(conflicts)[:50]],
                                     raw_file_hash_published=False))
 
 def check_alleles(genotype: str, allele_set: str) -> tuple[str, str | None]:
