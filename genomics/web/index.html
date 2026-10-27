@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="referrer" content="no-referrer"><meta name="color-scheme" content="light dark">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'none'; img-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'; frame-ancestors 'none'">
+<title>Lagoon Genomics — private SNP Explorer</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<style>
+:root{font-family:system-ui,-apple-system,sans-serif;color-scheme:light dark}
+*{box-sizing:border-box}body{max-width:850px;margin:auto;padding:16px 16px 80px;line-height:1.5}
+h1{font-size:1.65rem;line-height:1.2}h2{font-size:1.12rem}
+main{display:grid;gap:16px}.panel{border:1px solid #9997;border-radius:13px;padding:16px}
+small,.sub{opacity:.78}label{display:block;margin:8px 0;font-weight:600}
+button,select,input[type=file]{font:inherit;max-width:100%}button,select{padding:10px 12px;border-radius:8px;border:1px solid #9997}
+button{cursor:pointer}button:disabled{opacity:.35}button.primary{background:#154d84;color:#fff;border-color:#154d84}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+output{display:block;white-space:pre-wrap;overflow-wrap:anywhere}
+progress{width:100%;height:14px}ul{padding-left:20px}
+table{width:100%;border-collapse:collapse;font-size:.89rem}
+th,td{padding:9px 5px;border-bottom:1px solid #8885;text-align:left;overflow-wrap:anywhere}
+table td:nth-child(1){font-family:ui-monospace,monospace}
+.scroller{overflow-x:auto}th{font-weight:700}
+.warn{border-left:4px solid #ba6b1d;padding-left:12px}
+#notice{min-height:2em}a{color:inherit}
+@media(prefers-color-scheme:dark){button.primary{background:#307cc2}}
+</style>
+</head>
+<body>
+<header><h1>Lagoon Genomics</h1><p class="sub">Private DNA-SNP-Analyse · iPhone-tauglich · kostenlos · ohne Cloud-Upload</p></header>
+<main>
+<section class="panel">
+<h2>1. Originaldatei auf deinem Gerät auswählen</h2>
+<p>MyHeritage / 23andMe SNP-Rohdaten im Text-/CSV-Format. Das Einlesen erfolgt ausschließlich im Browser-Arbeitsspeicher. Keine Cookies, kein Upload, keine automatische Speicherung.</p>
+<label for="raw">SNP-Array-Datei (max. 80 MiB)</label>
+<input id="raw" type="file" accept=".txt,.tsv,.csv,text/plain,text/csv">
+<progress id="progress" value="0" max="100" hidden></progress>
+<output id="notice" role="status" aria-live="polite">Noch keine DNA-Datei verarbeitet.</output>
+<small>Akzeptiert rsid/chromosome/position/genotype oder result. Dateien anderer Genome-Builds werden für genetische Interpretation gesperrt.</small>
+</section>
+<section class="panel">
+<h2>2. Recherchekandidaten</h2>
+<label for="nutrient">Fachgebiet</label>
+<select id="nutrient"><option value="all">Alle vorhandenen Forschungsmarker</option>
+<option value="b12">Vitamin B12</option><option value="iron">Eisen</option>
+<option value="vitamin_d">Vitamin D</option><option value="folate">Folat</option>
+<option value="lactose">Laktase</option></select>
+<div class="actions"><button class="primary" id="analyze" disabled>Lokale Auswertung</button>
+<button id="copy" disabled>Ausgewählte Daten für ChatGPT kopieren</button>
+<button id="save" disabled>Bericht als JSON sichern</button>
+<button id="erase" disabled>Aus Speicher löschen</button></div>
+<p class="warn"><strong>Datenschutz:</strong> Erst das bewusste Kopieren/Teilen überträgt ausgewählte Genotypen an ChatGPT oder andere Dienste. Die bloße Analyse tut das nicht.</p>
+<output id="summary"></output>
+<div class="scroller"><table><thead><tr><th>SNP</th><th>Gen</th><th>Array-Call</th><th>Endpunkt</th><th>Forschung</th></tr></thead>
+<tbody id="results"></tbody></table></div>
+</section>
+<section class="panel">
+<h2>3. Interpretationsgrenzen</h2>
+<p>Das Tool diagnostiziert weder Malabsorption noch einen Mikronährstoffmangel. Assoziationen mit Serumwerten sind nicht gleichbedeutend mit intestinaler Resorption. Fehlende SNPs, HLA-Haplotypen und seltene Krankheitsvarianten sind nicht negativ getestet.</p>
+<p>Für persönliche Schlussfolgerungen braucht es zusätzliche Referenzallel- und Strangprüfung, populationsspezifische Studien sowie ggf. Laborwerte. Alle gezeigten Marker sind Forschungsansätze und keine bestätigten klinischen Befunde.</p>
+<small>Quellcode und Tests im öffentlichen GitHub-PR. Die DNA-Datei wird niemals in das GitHub-Repository übertragen.</small>
+</section>
+</main>
+<script type="module" src="./app.js"></script>
+</body></html>
