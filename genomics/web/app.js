@@ -146,7 +146,7 @@ if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js").catc
 
 /* User chooses once: save an AES-GCM ciphertext + non-extractable CryptoKey
  * in device-only IndexedDB. Subsequent visits automatically decrypt locally.
- * No passphrase, cloud call, remote account, API tokens, or repeat import. */
+ * No login prompt, cloud call, remote account, API tokens, or repeat import. */
 function vaultStatus(text){$("vaultStatus").textContent=text;}
 async function activateFromSaved(raw){
   const blob=new Blob([raw]);
