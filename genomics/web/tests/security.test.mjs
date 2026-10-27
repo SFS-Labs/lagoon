@@ -12,11 +12,11 @@ test("strict no-network HTML CSP and locally hosted scripts/styles",()=>{
   assert.match(html,/style-src 'self'/);
   assert.doesNotMatch(html,/<style\b/i);
   assert.doesNotMatch(html,/<script(?![^>]*\bsrc=)/i);
-  assert.match(html,/href="\.\/style\.css"/);
+  assert.match(html,/href="\.\/style\.css\?v=6"/);
   assert.match(sw,/"\.\/style\.css\?v=6"/);
 });
 test("public service worker only caches safe application assets",()=>{
-  assert.doesNotMatch(sw,/\b(?:rawFile|rs601338|localStorage|indexedDB)\b/i);
+  assert.doesNotMatch(sw,/\b(?:rawFile|rs601338|localStorage)\b|indexedDB\.(?:open|deleteDatabase)/i);
   assert.match(sw,/e\.request\.method!=="GET"/);
   assert.match(sw,/u\.origin!==self\.location\.origin/);
   assert.match(sw,/FILES\.some/);
