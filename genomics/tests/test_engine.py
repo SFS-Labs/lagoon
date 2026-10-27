@@ -6,6 +6,8 @@ from pathlib import Path
 
 from genomics.engine import analyze, parse_calls, check_alleles, EVIDENCE
 from genomics.mcp import execute, TOOLS
+from genomics.research import verify_reported_locus
+from unittest.mock import patch
 
 class CoreTests(unittest.TestCase):
     def setUp(self):
@@ -48,10 +50,33 @@ class CoreTests(unittest.TestCase):
     def test_mcp_no_file_no_leak(self):
         os.environ.pop("GENOMICS_RAW_FILE", None)
         self.assertEqual(execute("analyze_micronutrient_genetics", {})["status"], "NO_PRIVATE_RAW_FILE")
-        self.assertEqual(len(TOOLS), 3)
+        self.assertEqual(len(TOOLS), 4)
     def test_csv_not_tsv(self):
         self.write("rsid,chromosome,position,genotype\nrs855791,22,10,TT\n")
         self.assertEqual(parse_calls(self.path)["calls"]["rs855791"]["genotype"], "TT")
+
+    def test_reference_coordinate_and_strand_fail_closed(self):
+        data = {"mappings": [{"assembly_name": "GRCh37",
+                              "seq_region_name": "4",
+                              "start": 1234, "allele_string": "A/C"}]}
+        with patch("genomics.research.get_json", return_value=data) as remote:
+            same = verify_reported_locus("rs2282679", "4", "1234", "AC")
+            flipped = verify_reported_locus("rs2282679", "4", "1234", "GT")
+            wrong = verify_reported_locus("rs2282679", "4", "9876", "AC")
+            self.assertEqual(remote.call_count, 3)
+        self.assertEqual(same["status"], "GRCH37_COORDINATE_ALLELES_MATCH")
+        self.assertFalse(same["clinical_call_confirmed"])
+        self.assertEqual(flipped["status"], "STRAND_FLIP_CANDIDATE_UNRESOLVED")
+        self.assertEqual(wrong["status"], "REFERENCE_MAPPING_MISMATCH_OR_UNAVAILABLE")
+
+    def test_palindromic_reference_keeps_strand_unresolved(self):
+        data = {"mappings": [{"assembly_name": "GRCh37",
+                              "seq_region_name": "1",
+                              "start": 7, "allele_string": "A/T"}]}
+        with patch("genomics.research.get_json", return_value=data):
+            result = verify_reported_locus("rs100", "1", "7", "AT")
+        self.assertEqual(result["status"], "PALINDROMIC_STRAND_UNRESOLVED")
+
     def test_no_personal_genotypes_in_registry(self):
         self.assertTrue(all("study" in e and e["study"].startswith("https://") for e in EVIDENCE))
 
