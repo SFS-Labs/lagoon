@@ -52,11 +52,13 @@ function card({rsid,gene,genotype,chromosome,position,endpoint,status,source,stu
   const name=element("h3","marker-title"),id=element("code","",rsid);
   name.append(id);
   if(gene)name.append(element("span","marker-gene",gene));
-  top.append(name,element("span","marker-gt",genotype??"Nicht erfasst"));
+  top.append(name,element("span","marker-gt",genotype??(status==="ARRAY_NO_CALL"?"No-Call":"Fehlt")));
   div.append(top);
   if(endpoint)div.append(element("div","marker-desc",endpoint));
   if(chromosome&&position)div.append(element("div","marker-meta","Originaldatei: Chromosom "+chromosome+", Position "+de.format(position)));
-  const state=status==="NOT_GENOTYPED"?"Nicht auf dem SNP-Chip nachgewiesen bzw. kein gültiger Call":"Array-Call vorhanden, Referenz-/Studienallel noch ungeprüft";
+  const state=status==="ARRAY_NO_CALL"?"Marker in Datei vorhanden, Messung ohne verwertbaren Genotyp (No-Call)":
+    status==="NOT_ON_ARRAY"?"Marker in der Rohdatei nicht vorhanden":
+    "Array-Call vorhanden, Referenz-/Studienallel noch ungeprüft";
   div.append(element("div","marker-meta",state));
   const actions=element("div","marker-actions");
   if(source)actions.append(researchLink(source,"Forschungsquelle"));
