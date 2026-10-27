@@ -51,7 +51,7 @@ class CoreTests(unittest.TestCase):
     def test_mcp_no_file_no_leak(self):
         os.environ.pop("GENOMICS_RAW_FILE", None)
         self.assertEqual(execute("analyze_micronutrient_genetics", {})["status"], "NO_PRIVATE_RAW_FILE")
-        self.assertEqual(len(TOOLS), 5)
+        self.assertEqual(len(TOOLS), 7)
     def test_csv_not_tsv(self):
         self.write("rsid,chromosome,position,genotype\nrs855791,22,10,TT\n")
         self.assertEqual(parse_calls(self.path)["calls"]["rs855791"]["genotype"], "TT")
@@ -98,6 +98,11 @@ class CoreTests(unittest.TestCase):
         with patch("genomics.discovery.get_json", return_value={"new_shape": {}}):
             with self.assertRaises(RuntimeError):
                 scan_trait_calls({}, "iron")
+
+    def test_new_tools_respect_absent_private_data(self):
+        self.assertEqual(execute("inspect_private_genomic_input", {})["status"], "NO_PRIVATE_RAW_FILE")
+        self.assertEqual(execute("audit_quantitative_gwas_record", {"record": {"rsid": "rs100"}})["status"],
+                         "NO_PRIVATE_RAW_FILE")
 
     def test_no_personal_genotypes_in_registry(self):
         self.assertTrue(all("study" in e and e["study"].startswith("https://") for e in EVIDENCE))
