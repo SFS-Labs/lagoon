@@ -55,8 +55,29 @@ jobs:
           print('GWAS_CONTENT_TYPE:', type(c).__name__, 'count:', len(c) if isinstance(c, list) else 'unknown')
           if isinstance(c, list) and c:
               x = c[0]
+              print('GWAS_FIRST_RECORD_KEYS:', list(x) if isin      - name: Public GWAS v2 response schema probe (no genotypes)
+        if: matrix.python-version == '3.12'
+        continue-on-error: true
+        run: |
+          python - <<'PY'
+          from genomics.research import get_json, URLS
+          p = get_json(URLS['gwas_catalog_v2'], {'rs_id':'rs855791','page':0,'size':2})
+          print('GWAS_RESPONSE_ROOT_KEYS:', list(p)[:24] if isinstance(p, dict) else type(p).__name__)
+          c = p.get('content', []) if isinstance(p, dict) else []
+          print('GWAS_CONTENT_TYPE:', type(c).__name__, 'count:', len(c) if isinstance(c, list) else 'unknown')
+          if isinstance(c, list) and c:
+              x = c[0]
               print('GWAS_FIRST_RECORD_KEYS:', list(x) if isinstance(x, dict) else type(x).__name__)
               if isinstance(x, dict):
                   print('GWAS_FIRST_FIELD_TYPES:', {k:type(v).__name__ for k,v in x.items()})
                   print('GWAS_PUBLIC_RSID_FIELDS:', {k:str(v)[:150] for k,v in x.items() if 'rs' in k.lower() or 'variant' in k.lower() or 'snp' in k.lower()})
+          emb = p.get('_embedded', {}) if isinstance(p,dict) else {}
+          print('GWAS_EMBEDDED_KEYS:', list(emb))
+          for key, items in emb.items():
+              if isinstance(items,list) and items:
+                  first=items[0]
+                  print('GWAS_EMBEDDED_FIRST_RECORD_KEYS:', list(first) if isinstance(first,dict) else type(first).__name__)
+                  print('GWAS_EMBEDDED_FIRST_FIELD_TYPES:', {k:type(v).__name__ for k,v in first.items()} if isinstance(first,dict) else {})
+                  print('GWAS_EMBEDDED_PUBLIC_SNPS:', {k:str(v)[:400] for k,v in first.items() if any(x in k.lower() for x in ('rs','snp','variant','strongest'))} if isinstance(first,dict) else {})
+                  break
           PY
