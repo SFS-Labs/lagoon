@@ -16,3 +16,26 @@ table td:nth-child(1){font-family:ui-monospace,monospace}
 .warn{border-left:4px solid #ba6b1d;padding-left:12px}
 #notice{min-height:2em}a{color:inherit}
 @media(prefers-color-scheme:dark){button.primary{background:#307cc2}}
+
+/* iPhone layout: stacked findings instead of narrow five-column table */
+body{width:100%;overflow-x:hidden}
+main,.panel,.marker-list{min-width:0}
+input[type=file],select,textarea{max-width:100%;width:100%}
+textarea{font:inherit;resize:vertical;border-radius:8px;padding:12px;border:1px solid #9997}
+.actions button{max-width:100%;min-height:44px}
+.marker-list{display:grid;grid-template-columns:1fr;gap:10px;margin-top:12px}
+.marker-card{min-width:0;border:1px solid #7775;border-radius:11px;padding:13px;display:grid;gap:8px}
+.marker-top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.marker-title{font-size:1rem;font-weight:700;margin:0;overflow-wrap:normal;word-break:normal}
+.marker-title code{white-space:nowrap}
+.marker-gene{color:inherit;opacity:.76;font-weight:500;margin-left:8px}
+.marker-gt{padding:3px 9px;border-radius:99px;background:#8883;font-size:.8rem}
+.marker-desc{font-size:.9rem;overflow-wrap:break-word}
+.marker-meta{font-size:.79rem;opacity:.8;overflow-wrap:break-word}
+.marker-card a{font-size:.86rem;overflow-wrap:normal;white-space:normal}
+.marker-actions{display:flex;gap:14px;flex-wrap:wrap}
+.qc-details{margin-top:10px;border-top:1px solid #7775;padding-top:10px}
+.qc-details dl{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;margin:0;font-size:.88rem}
+.qc-details dt,.qc-details dd{margin:0}
+.qc-details dd{text-align:right;font-variant-numeric:tabular-nums}
+@media(min-width:720px){.marker-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
