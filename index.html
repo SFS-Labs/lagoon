@@ -6,14 +6,14 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'none'; img-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'; frame-ancestors 'none'">
 <title>Lagoon Genomics — private SNP Explorer</title>
 <link rel="manifest" href="./manifest.webmanifest">
-<link rel="stylesheet" href="./style.css">
+<link rel="stylesheet" href="./style.css?v=6">
 </head>
 <body>
-<header><h1>Lagoon Genomics</h1><small class="version">Version 0.4 · Lokaler Vollgenom-Index</small><p class="sub">Private DNA-SNP-Analyse · iPhone-tauglich · kostenlos · ohne Cloud-Upload</p></header>
+<header><h1>Lagoon Genomics</h1><small class="version">Version 0.5 · Verschlüsselter DNA-Tresor</small><p class="sub">Private DNA-SNP-Analyse · iPhone-tauglich · kostenlos · ohne Cloud-Upload</p></header>
 <main>
 <section class="panel">
 <h2>1. Originaldatei auf deinem Gerät auswählen</h2>
-<p>MyHeritage / 23andMe SNP-Rohdaten im Text-/CSV-Format. Das Einlesen erfolgt ausschließlich im Browser-Arbeitsspeicher. Keine Cookies, kein Upload, keine automatische Speicherung.</p>
+<p>MyHeritage / 23andMe SNP-Rohdaten im Text-/CSV-Format. Das Einlesen erfolgt ausschließlich im Browser-Arbeitsspeicher. Kein Upload. Nach einmaligem Import kannst du die gesamte Originaldatei passwortgeschützt dauerhaft auf diesem Gerät speichern.</p>
 <label for="raw">SNP-Array-Datei (max. 80 MiB)</label>
 <input id="raw" type="file" accept=".txt,.tsv,.csv,text/plain,text/csv">
 <progress id="progress" value="0" max="100" hidden></progress>
@@ -21,8 +21,38 @@
 <div id="qcDetails" class="qc-details" hidden></div>
 <small>Akzeptiert rsid/chromosome/position/genotype oder result. Dateien anderer Genome-Builds werden für genetische Interpretation gesperrt.</small>
 </section>
+<section class="panel vault-panel" aria-labelledby="vault-heading">
+<h2 id="vault-heading">2. DNA-Tresor – nur einmal importieren</h2>
+<p>Originaldatei <strong>AES-256-GCM-verschlüsselt</strong> lokal im Speicher dieses Browsers aufbewahren. Das Passwort wird niemals gespeichert oder an einen Server gesendet. Künftige Besuche: Passwort eingeben, fertig.</p>
+<output id="vaultStatus" role="status" aria-live="polite">Prüfe, ob bereits eine verschlüsselte DNA-Datei gespeichert wurde …</output>
+<div id="vaultSavePanel" hidden>
+  <label for="vaultPassword">Neues Tresor-Passwort (mindestens 16 Zeichen)</label>
+  <input id="vaultPassword" type="password" minlength="16" maxlength="512" autocomplete="new-password" spellcheck="false">
+  <label for="vaultPasswordRepeat">Passwort wiederholen</label>
+  <input id="vaultPasswordRepeat" type="password" minlength="16" maxlength="512" autocomplete="new-password" spellcheck="false">
+  <button id="saveVault" class="primary" disabled>Originaldatei verschlüsselt auf diesem Gerät speichern</button>
+</div>
+<div id="vaultExistingPanel" hidden>
+  <label for="unlockPassword">Tresor entsperren</label>
+  <input id="unlockPassword" type="password" autocomplete="off" spellcheck="false">
+  <div class="actions">
+  <button id="unlockVault" class="primary">Gespeicherte DNA ohne neuen Import öffnen</button>
+  <button id="backupVault">Verschlüsseltes Backup in „Dateien“ sichern</button>
+  <button id="deleteVault">Lokalen Tresor endgültig löschen</button>
+  </div>
+</div>
+<div class="vault-restore">
+  <label for="restoreFile">Verschlüsseltes Backup wiederherstellen (optional)</label>
+  <input type="file" id="restoreFile" accept=".lgv,application/octet-stream">
+  <label for="restorePassword">Passwort des verschlüsselten Backups</label>
+  <input type="password" id="restorePassword" autocomplete="off" spellcheck="false">
+  <button id="restoreVault">Backup prüfen und auf diesem Gerät wiederherstellen</button>
+</div>
+<p class="warn"><strong>Wichtig:</strong> Safari kann Website-Speicher löschen. Sichere nach dem ersten Speichern unbedingt eine <strong>verschlüsselte .lgv-Backupdatei</strong> in der iPhone-App „Dateien“ oder deinem eigenen Backup-Speicher. Ohne Passwort ist das Backup nicht entschlüsselbar. Safari, Home-Screen-App und In-App-Browser können getrennte Datenspeicher verwenden.</p>
+<small>Nur ein von dir bestätigter Speichervorgang legt verschlüsselte DNA-Daten ab. Der Dienstanbieter GitHub Pages erhält keine Rohdaten und keine Tresorschlüssel.</small>
+</section>
 <section class="panel">
-<h2>2. Recherchekandidaten</h2>
+<h2>3. Recherchekandidaten</h2>
 <label for="nutrient">Fachgebiet</label>
 <select id="nutrient"><option value="all">Alle vorhandenen Forschungsmarker</option>
 <option value="b12">Vitamin B12</option><option value="iron">Eisen</option>
@@ -31,13 +61,13 @@
 <div class="actions"><button class="primary" id="analyze" disabled>Lokale Auswertung</button>
 <button id="copy" disabled>Ausgewählte Daten für ChatGPT kopieren</button>
 <button id="save" disabled>Bericht als JSON sichern</button>
-<button id="erase" disabled>Aus Speicher löschen</button></div>
+<button id="erase" disabled>Aktuelle Sitzung sperren</button></div>
 <p class="warn"><strong>Datenschutz:</strong> Erst das bewusste Kopieren/Teilen überträgt ausgewählte Genotypen an ChatGPT oder andere Dienste. Die bloße Analyse tut das nicht.</p>
 <output id="summary"></output>
 <div id="results" class="marker-list" role="list" aria-label="Forschungsmarker"></div>
 </section>
 <section class="panel">
-<h2>3. Alle SNPs einzeln oder in Gruppen abfragen</h2>
+<h2>4. Alle SNPs einzeln oder in Gruppen abfragen</h2>
 <p>Durchsuche alle eingelesenen rsIDs, nicht nur die zehn Forschungsmarker. Genotypen bleiben lokal. Mehrere rsIDs mit Leerzeichen, Komma oder Zeilenumbruch trennen (maximal 100).</p>
 <label for="rsSearch">rsID-Suche</label>
 <textarea id="rsSearch" rows="2" spellcheck="false" autocapitalize="none" placeholder="rs855791, rs4988235, rs1801133"></textarea>
@@ -49,11 +79,11 @@
 <div id="lookupResults" class="marker-list" role="list" aria-label="Individuelle SNP-Abfrage"></div>
 </section>
 <section class="panel">
-<h2>4. Interpretationsgrenzen</h2>
+<h2>5. Interpretationsgrenzen</h2>
 <p>Das Tool diagnostiziert weder Malabsorption noch einen Mikronährstoffmangel. Assoziationen mit Serumwerten sind nicht gleichbedeutend mit intestinaler Resorption. Fehlende SNPs, HLA-Haplotypen und seltene Krankheitsvarianten sind nicht negativ getestet.</p>
 <p>Für persönliche Schlussfolgerungen braucht es zusätzliche Referenzallel- und Strangprüfung, populationsspezifische Studien sowie ggf. Laborwerte. Alle gezeigten Marker sind Forschungsansätze und keine bestätigten klinischen Befunde.</p>
 <small>Quellcode und Tests im öffentlichen GitHub-PR. Die DNA-Datei wird niemals in das GitHub-Repository übertragen.</small>
 </section>
 </main>
-<script type="module" src="./app.js"></script>
+<script type="module" src="./app.js?v=6"></script>
 </body></html>
