@@ -104,6 +104,32 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(execute("audit_quantitative_gwas_record", {"record": {"rsid": "rs100"}})["status"],
                          "NO_PRIVATE_RAW_FILE")
 
+    def test_real_gwas_v2_nested_snp_allele_schema(self):
+        # Mirrors verified live API response keys from Oct 27 2026.
+        response = {"_embedded": {"associations": [
+            {"association_id": 1001, "snp_allele": [{"rs_id": "rs855791",
+                                                      "effect_allele": "G"}],
+             "snp_effect_allele": ["rs855791-G"], "pubmed_id": "12345678",
+             "accession_id": "GCST901", "multi_snp_haplotype": False,
+             "snp_interaction": False},
+            {"association_id": 1002, "snp_allele": [{"rs_id": "rs99999",
+                                                      "effect_allele": "A"}],
+             "snp_effect_allele": ["rs99999-A"]},
+            {"association_id": 1003, "snp_allele": [{"rs_id": "rs855791",
+                                                      "effect_allele": "C"}],
+             "multi_snp_haplotype": True}
+        ]}}
+        calls = {"rs855791": {"genotype": "CT", "chromosome": "22", "position": "10"}}
+        with patch("genomics.discovery.get_json", return_value=response):
+            out = scan_trait_calls(calls, "iron", pages=1)
+        self.assertEqual(len(out["matched_candidates"]), 1)
+        found = out["matched_candidates"][0]
+        self.assertEqual(found["rsid"], "rs855791")
+        self.assertEqual(found["source_pmids"], ["12345678"])
+        self.assertEqual(found["study_accessions"], ["GCST901"])
+        self.assertEqual(found["association_ids"], ["1001"])
+        self.assertEqual(found["effect"], "NOT_HARMONIZED")
+
     def test_no_personal_genotypes_in_registry(self):
         self.assertTrue(all("study" in e and e["study"].startswith("https://") for e in EVIDENCE))
 
