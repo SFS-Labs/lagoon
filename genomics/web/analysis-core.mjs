@@ -50,9 +50,13 @@ export async function parseArray(file,{onProgress=()=>{},maxBytes=MAX_BYTES,maxR
     }
     if(!header){
       header=parseHeader(t);
-      if(!header)throw Error("Header must contain rsid, chromosome, position and genotype/result.");
-      qc.columns_confirmed=true;
-      return;
+      if(header){qc.columns_confirmed=true;return;}
+      const sep=separator(t),parts=t.split(sep);
+      if(parts.length<4||!RS.test(parts[0].trim()))
+        throw Error("Expected SNP header or standard four-column rsid/chromosome/position/genotype data.");
+      header={ix:{rsid:0,chr:1,pos:2,gt:3},sep};
+      qc.columns_confirmed=false; // Headerless input: no inferred genome build or allele direction.
+      // First headerless row is itself a SNP call and must not be dropped.
     }
     qc.rows++;
     if(qc.rows>maxRows)throw Error("Unexpectedly many SNP rows.");
