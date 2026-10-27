@@ -13,10 +13,14 @@ try:
     from .engine import analyze, parse_calls, research_summary, GenotypeError, EVIDENCE
     from .research import query_rsid, verify_reported_locus
     from .discovery import scan_trait_calls
+    from .intake import inspect_input, require_array
+    from .statistics import assess_study_effect
 except ImportError:
     from engine import analyze, parse_calls, research_summary, GenotypeError, EVIDENCE
     from research import query_rsid, verify_reported_locus
     from discovery import scan_trait_calls
+    from intake import inspect_input, require_array
+    from statistics import assess_study_effect
 
 PROTOCOL = "2025-06-18"
 TOOLS = [
@@ -33,6 +37,12 @@ TOOLS = [
     {"name": "scan_private_genome_against_gwas_trait",
      "description": "Discover candidate associations for nutrient traits from public GWAS v2 and intersect with private genotypes LOCALLY. Bounded 1-5 pages; NO individual risk scores.",
      "inputSchema": {"type": "object", "properties": {"trait": {"type": "string", "enum": ["b12", "folate", "vitamin_d", "iron", "ferritin", "zinc", "calcium", "magnesium", "selenium"]}, "pages": {"type": "integer", "minimum": 1, "maximum": 5}}, "required": ["trait"], "additionalProperties": False}},
+    {"name": "inspect_private_genomic_input",
+     "description": "Determine private genotype format (SNP array versus FASTQ/VCF/BAM/CRAM) and safe local/NGS route without uploading contents.",
+     "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False}},
+    {"name": "audit_quantitative_gwas_record",
+     "description": "Statistically audit a caller-supplied literature effect with full fields, personal array call, external GRCh37 coordinate check and explicitly confirmed ancestry compatibility. Does NOT verify paper content or calculate individual risk.",
+     "inputSchema": {"type": "object", "properties": {"record": {"type": "object"}, "ancestry_match": {"type": "boolean"}}, "required": ["record"], "additionalProperties": False}},
     {"name": "lookup_public_variant_evidence",
      "description": "Retrieve live raw annotation snippets for a public rsID from GWAS Catalog v2, Ensembl GRCh37 and Europe PMC. Does not transmit DNA data; raw results are NOT effect allele-harmonised.",
      "inputSchema": {"type": "object", "properties": {"rsid": {"type": "string", "pattern": "^rs[0-9]+$"}},
@@ -45,6 +55,7 @@ def source():
     p = Path(path)
     if not p.is_absolute():
         raise GenotypeError("GENOMICS_RAW_FILE must be an absolute path")
+    require_array(p)
     return parse_calls(p)
 
 def execute(name, args):
@@ -90,6 +101,40 @@ def execute(name, args):
         if data is None:
             return {"status": "NO_PRIVATE_RAW_FILE"}
         return scan_trait_calls(data["calls"], args["trait"], args.get("pages", 2))
+    if name == "inspect_private_genomic_input":
+        p = os.environ.get("GENOMICS_RAW_FILE", "").strip()
+        if not p:
+            return {"status": "NO_PRIVATE_RAW_FILE", "configured": False}
+        if not Path(p).is_absolute():
+            raise GenotypeError("Expected absolute path for private input")
+        return inspect_input(p)
+    if name == "audit_quantitative_gwas_record":
+        data = source()
+        if data is None:
+            return {"status": "NO_PRIVATE_RAW_FILE"}
+        record = args.get("record")
+        if not isinstance(record, dict):
+            raise ValueError("Missing study-effect record object")
+        rsid = record.get("rsid")
+        if not isinstance(rsid, str) or not rsid.startswith("rs") or not rsid[2:].isdigit():
+            raise ValueError("Valid public rsID required")
+        personal = data["calls"].get(rsid)
+        reference = {"status": "NOT_GENOTYPED"} if personal is None else {"status": "UNVERIFIED_REFERENCE"}
+        if personal is not None:
+            try:
+                reference = verify_reported_locus(
+                    rsid, personal["chromosome"], personal["position"],
+                    personal["genotype"], data["qc"]["build"])
+            except (RuntimeError, ValueError) as exc:
+                reference = {"status": "UPSTREAM_ERROR", "error_type": type(exc).__name__}
+        evaluated = assess_study_effect(
+            record, personal_genotype=personal["genotype"] if personal else None,
+            coordinate_status=reference["status"],
+            ancestry_match=args.get("ancestry_match"))
+        evaluated["reference_check"] = reference
+        evaluated["literature_authenticity"] = "NOT_VERIFIED_USER_SUPPLIED_METADATA"
+        evaluated["clinical_validation"] = False
+        return evaluated
     if name == "lookup_public_variant_evidence":
         return query_rsid(args["rsid"])
     raise ValueError("Unknown tool")
@@ -105,8 +150,11 @@ def response(id_, result=None, error=None):
 
 def serve():
     for line in sys.stdin:
+        id_ = None
         try:
             message = json.loads(line)
+            if not isinstance(message, dict):
+                continue
             method = message.get("method")
             if "id" not in message:
                 continue
@@ -127,7 +175,7 @@ def serve():
             else:
                 response(id_, error=f"Unsupported method: {method}")
         except Exception as exc:
-            if "id_" in locals():
+            if id_ is not None:
                 response(id_, error=f"{type(exc).__name__}: {exc}")
             # Never log genotypes, raw input, or call contents.
 def main():
