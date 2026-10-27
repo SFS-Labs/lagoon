@@ -7,6 +7,7 @@ from pathlib import Path
 from genomics.engine import analyze, parse_calls, check_alleles, EVIDENCE
 from genomics.mcp import execute, TOOLS
 from genomics.research import verify_reported_locus
+from genomics.discovery import scan_trait_calls
 from unittest.mock import patch
 
 class CoreTests(unittest.TestCase):
@@ -50,7 +51,7 @@ class CoreTests(unittest.TestCase):
     def test_mcp_no_file_no_leak(self):
         os.environ.pop("GENOMICS_RAW_FILE", None)
         self.assertEqual(execute("analyze_micronutrient_genetics", {})["status"], "NO_PRIVATE_RAW_FILE")
-        self.assertEqual(len(TOOLS), 4)
+        self.assertEqual(len(TOOLS), 5)
     def test_csv_not_tsv(self):
         self.write("rsid,chromosome,position,genotype\nrs855791,22,10,TT\n")
         self.assertEqual(parse_calls(self.path)["calls"]["rs855791"]["genotype"], "TT")
@@ -76,6 +77,27 @@ class CoreTests(unittest.TestCase):
         with patch("genomics.research.get_json", return_value=data):
             result = verify_reported_locus("rs100", "1", "7", "AT")
         self.assertEqual(result["status"], "PALINDROMIC_STRAND_UNRESOLVED")
+
+    def test_trait_scan_intersects_only_locally(self):
+        pages = [{"content": [
+            {"rsId": "rs601338", "id": "GCST-test-1"},
+            {"rsId": "rs999999", "id": "GCST-test-2"}]}, {"content": []}]
+        personal_calls = {"rs601338": {"genotype": "AA", "chromosome": "19",
+                                     "position": "1"}}
+        with patch("genomics.discovery.get_json", side_effect=pages) as remote:
+            output = scan_trait_calls(personal_calls, "b12", pages=2)
+        self.assertEqual(len(output["matched_candidates"]), 1)
+        self.assertEqual(output["matched_candidates"][0]["rsid"], "rs601338")
+        self.assertEqual(output["matched_candidates"][0]["effect"], "NOT_HARMONIZED")
+        for call in remote.call_args_list:
+            self.assertNotIn("AA", str(call))
+            self.assertNotIn("rs601338", str(call))
+        self.assertFalse(output["page_budget_exhausted"])
+
+    def test_trait_scan_fails_closed_on_unknown_upstream_shape(self):
+        with patch("genomics.discovery.get_json", return_value={"new_shape": {}}):
+            with self.assertRaises(RuntimeError):
+                scan_trait_calls({}, "iron")
 
     def test_no_personal_genotypes_in_registry(self):
         self.assertTrue(all("study" in e and e["study"].startswith("https://") for e in EVIDENCE))
