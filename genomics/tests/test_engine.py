@@ -31,7 +31,7 @@ class CoreTests(unittest.TestCase):
         a, b = check_alleles("GT", "AC")
         self.assertEqual(a, "reverse_complement_candidate_UNVERIFIED")
         self.assertIsNone(b)
-        a, b = check_alleles("CC", "AG")
+        a, b = check_alleles("AC", "AG")
         self.assertEqual(a, "ALLELE_MISMATCH")
         self.assertIsNone(b)
     def test_researched_effect_not_scaled_into_absolute_risk(self):
