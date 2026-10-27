@@ -3,47 +3,50 @@ import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {resolve} from "node:path";
 const root=resolve(import.meta.dirname,"..");
-const html=readFileSync(resolve(root,"index.html"),"utf8");
-const sw=readFileSync(resolve(root,"sw.js"),"utf8");
-test("strict no-network HTML CSP and locally hosted scripts/styles",()=>{
-  assert.match(html,/Content-Security-Policy/);
-  assert.match(html,/connect-src 'none'/);
-  assert.match(html,/script-src 'self'/);
-  assert.match(html,/style-src 'self'/);
-  assert.doesNotMatch(html,/<style\b/i);
-  assert.doesNotMatch(html,/<script(?![^>]*\bsrc=)/i);
-  assert.match(html,/href="\.\/style\.css\?v=6"/);
-  assert.match(sw,/"\.\/style\.css\?v=6"/);
+const get=file=>readFileSync(resolve(root,file),"utf8");
+const html=get("index.html"),app=get("app.js"),sw=get("sw.js"),vault=get("device-vault.mjs");
+test("Strict no-network browser CSP and versioned local-only assets",()=>{
+ assert.match(html,/Content-Security-Policy/);
+ assert.match(html,/connect-src 'none'/);
+ assert.match(html,/script-src 'self'/);
+ assert.match(html,/style-src 'self'/);
+ assert.doesNotMatch(html,/<style\b/i);
+ assert.doesNotMatch(html,/<script(?![^>]*\bsrc=)/i);
+ assert.match(html,/href="\.\/style\.css\?v=7"/);
+ assert.match(html,/src="\.\/app\.js\?v=7"/);
 });
-test("public service worker only caches safe application assets",()=>{
-  assert.doesNotMatch(sw,/\b(?:rawFile|rs601338|localStorage)\b|indexedDB\.(?:open|deleteDatabase)/i);
-  assert.match(sw,/e\.request\.method!=="GET"/);
-  assert.match(sw,/url\.origin!==self\.location\.origin/);
-  assert.match(sw,/FILES\.some/);
-  assert.match(sw,/\.\/vault\.mjs\?v=6/);
+test("Service worker caches only application assets, not genomic data",()=>{
+ assert.match(sw,/"\.\/device-vault\.mjs\?v=7"/);
+ assert.match(sw,/e?vent\.request\.method!=="GET"/);
+ assert.match(sw,/url\.origin!==self\.location\.origin/);
+ assert.match(sw,/FILES\.some/);
+ assert.doesNotMatch(sw,/\.put\(|indexedDB\.open\(/);
+ assert.match(sw,/mode==="navigate"/);
 });
-
-test("mobile UI has cards, all-array lookup and no raw genotype uploads",()=>{
- assert.match(html,/id="lookup"/);
- assert.match(html,/id="rsSearch"/);
- assert.match(html,/id="qcDetails"/);
- assert.match(html,/id="lookupResults"/);
- assert.doesNotMatch(html,/data-upload/);
- const css=readFileSync(resolve(root,"style.css"),"utf8");
+test("Mobile PWA search and chromosome cards work without a wide table",()=>{
+ for(const id of ["lookup","rsSearch","qcDetails","lookupResults"]){
+  assert.match(html,new RegExp('id="'+id+'"'));
+ }
+ const css=get("style.css");
  assert.match(css,/\.marker-card/);
  assert.match(css,/@media\(min-width:720px\)/);
 });
-
-test("vault controls exist, and browser loads version-pinned encryption module",()=>{
- for(const id of ["saveVault","unlockVault","backupVault","deleteVault","restoreVault",
-                  "vaultPassword","vaultPasswordRepeat","unlockPassword","restorePassword"]){
-   assert.match(html,new RegExp('id="'+id+'"'));
+test("No password input, password function, or password prompt in live app",()=>{
+ for(const text of [html,app,vault,sw]){
+  assert.doesNotMatch(text,/type="password"|unlockPassword|vaultPassword|saveVault|deriveKey|PBKDF2|passphrase|passwort eingeben|password required/i);
  }
- assert.match(html,/\.\/app\.js\?v=6/);
- assert.match(html,/\.\/style\.css\?v=6/);
- const app=readFileSync(resolve(root,"app.js"),"utf8");
- assert.match(app,/from "\.\/vault\.mjs\?v=6"/);
- assert.match(app,/await saveEncryptedGenome\(/);
- assert.match(app,/await decryptGenome\(/);
- assert.doesNotMatch(app,/fetch\(/);
+ assert.match(html,/id="rememberGenome"/);
+ assert.match(html,/id="forgetGenome"/);
+ assert.match(app,/from "\.\/device-vault\.mjs\?v=7"/);
+ assert.match(app,/await rememberGenome\(/);
+ assert.match(app,/await openRememberedGenome\(/);
+ assert.doesNotMatch(app,/\bfetch\(/);
+});
+test("Ciphertext and a non-extractable key are stored; no plaintext IndexedDB writes",()=>{
+ assert.match(vault,/extractable!==false/);
+ assert.match(vault,/generateKey\(\{name:"AES-GCM",length:256\},false/);
+ assert.match(vault,/store\.put\(key,KEY\)/);
+ assert.match(vault,/store\.put\(record,DATA\)/);
+ assert.doesNotMatch(vault,/store\.put\(raw/);
+ assert.match(vault,/forgetRememberedGenome/);
 });
