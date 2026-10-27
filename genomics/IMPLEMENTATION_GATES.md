@@ -26,7 +26,7 @@ Each step is DONE only if code or governance is actually implemented; OPEN means
 | 18 | Phenotype knowledge | Expand to zinc, magnesium, copper, selenium, vitamin A/E/K, thiamine | OPEN |
 | 19 | Phenotype knowledge | Investigate celiac HLA-DQ2/DQ8 via validated haplotyping, not tag SNP guess | OPEN |
 | 20 | Phenotype knowledge | Investigate monogenic transport disorders where array coverage permits | OPEN |
-| 21 | Phenotype knowledge | Build differential: diet, medications, inflammation, bariatric disease | OPEN |
+| 21 | Phenotype knowledge | Build differential: diet, medications, inflammation, bariatric disease | PARTIAL |
 | 22 | Evidence retrieval | GWAS Catalog REST v2 rsID adapter | DONE |
 | 23 | Evidence retrieval | Ensembl GRCh37 variation adapter | DONE |
 | 24 | Evidence retrieval | Europe PMC search adapter | DONE |
@@ -35,8 +35,8 @@ Each step is DONE only if code or governance is actually implemented; OPEN means
 | 27 | Evidence retrieval | Evaluate BioMCP for ClinVar, ClinGen, gnomAD, literature | OPEN |
 | 28 | Evidence retrieval | Build trait-first discovery with pagination and local intersect | PARTIAL |
 | 29 | Evidence retrieval | Cache/source-snapshot and respect rate limits and licensing | OPEN |
-| 30 | Statistical reliability | Require effect allele/strand and GRCh37 allele normalization | OPEN |
-| 31 | Statistical reliability | Require OR or beta, confidence interval, unit, phenotype and ancestry | OPEN |
+| 30 | Statistical reliability | Require effect allele/strand and GRCh37 allele normalization | PARTIAL |
+| 31 | Statistical reliability | Require OR or beta, confidence interval, unit, phenotype and ancestry | PARTIAL |
 | 32 | Statistical reliability | Identify linked SNPs and prune/correct LD double-counting | OPEN |
 | 33 | Statistical reliability | Exclude underpowered and unreproduced associations from score | OPEN |
 | 34 | Statistical reliability | Validate ancestry-matched baseline and externally calibrated PRS | OPEN |
@@ -46,9 +46,9 @@ Each step is DONE only if code or governance is actually implemented; OPEN means
 | 38 | Delivery and QA | Independent dry run on real genomics file with approved access | OPEN |
 | 39 | Delivery and QA | Authenticated remote or secure tunnel iPhone workflow, adversarial QA | OPEN |
 
-**As of 2026-10-27: 20/39 documented gates met in code/design; 1 partially implemented; 18 unresolved.**
+**As of 2026-10-27: 20/39 documented gates met in code/design; 4 partially implemented; 15 unresolved.**
 
-PARTIAL means synthetics exist but external live data and complete association coverage remain unverified.\n\n**Do not merge as 'ready for personalized clinical recommendations'.** Test coverage on synthetic fixtures and working stdio protocol is necessary but not sufficient.
+PARTIAL means a subcomponent exists, but the full acceptance gate is not satisfied. Statistical audit rejects incomplete records but does not extract and verify study results automatically.\n\n**Do not merge as 'ready for personalized clinical recommendations'.** Test coverage on synthetic fixtures and working stdio protocol is necessary but not sufficient.
 
 Primary free data infrastructure: official GWAS Catalog MCP (https://ebi.ac.uk/gwas/mcp), official Open Targets Platform MCP (https://mcp.platform.opentargets.org/mcp), and optionally BioMCP (https://github.com/genomoncology/biomcp). Other research sources can be consulted by free read-only HTTP adapters. Validate provider terms and authentication before production.
 
