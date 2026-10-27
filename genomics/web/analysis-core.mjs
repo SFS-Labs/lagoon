@@ -27,6 +27,8 @@ function parseHeader(line){
 }
 function makeQC(){
   return {rows:0,valid:0,no_calls:0,duplicates:0,conflicts:0,rejected:0,haploid:0,
+          rejectionReasons:{non_rsid_marker:0,non_snv_indel:0,invalid_chromosome:0,invalid_position:0,unsupported_alleles:0,malformed_line:0},
+          chromosomeCounts:{},
           build:"UNKNOWN",columns_confirmed:false,source:"private_browser_memory",
           uploaded:false,completed:false};
 }
@@ -61,22 +63,28 @@ export async function parseArray(file,{onProgress=()=>{},maxBytes=MAX_BYTES,maxR
     qc.rows++;
     if(qc.rows>maxRows)throw Error("Unexpectedly many SNP rows.");
     const fields=t.split(header.sep).map(v=>v.trim().replace(/^"|"$/g,""));
+    if(fields.length<=Math.max(...Object.values(header.ix))){qc.rejected++;qc.rejectionReasons.malformed_line++;return;}
     const id=(fields[header.ix.rsid]||"").toLowerCase();
     const chr=(fields[header.ix.chr]||"").toUpperCase();
     const pos=Number(fields[header.ix.pos]);
     const geno=(fields[header.ix.gt]||"").toUpperCase().replace(/[ /]/g,"");
-    if(!RS.test(id)||!CHR.test(chr)||!Number.isSafeInteger(pos)||pos<1||pos>300_000_000||!GT.test(geno)){
-      qc.rejected++;return;
-    }
+    const reject=(reason)=>{qc.rejected++;qc.rejectionReasons[reason]++;};
+    if(!RS.test(id)){reject("non_rsid_marker");return;}
+    if(!CHR.test(chr)){reject("invalid_chromosome");return;}
+    if(!Number.isSafeInteger(pos)||pos<1||pos>300_000_000){reject("invalid_position");return;}
     if(geno==="--"||geno==="00"){qc.no_calls++;return;}
+    if(/^[ID]{1,2}$/.test(geno)){reject("non_snv_indel");return;}
+    if(!GT.test(geno)){reject("unsupported_alleles");return;}
     if(geno.length===1)qc.haploid++;
     if(conflicts.has(id))return;
     const current=calls.get(id);
     if(current){
       if(current.gt===geno&&current.chr===chr&&current.pos===pos){qc.duplicates++;return;}
-      calls.delete(id);conflicts.add(id);qc.conflicts++;return;
+      calls.delete(id);conflicts.add(id);qc.conflicts++;
+      qc.chromosomeCounts[chr]=Math.max(0,(qc.chromosomeCounts[chr]??1)-1);return;
     }
     calls.set(id,{chr,pos,gt:geno});
+    qc.chromosomeCounts[chr]=(qc.chromosomeCounts[chr]??0)+1;
     qc.valid++;
   }
   try{
@@ -137,4 +145,29 @@ export function makeCandidateReport(dataset, nutrient="all"){
 }
 export function csvLine(values){
   return values.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",");
+}
+
+/* Local random access across the entire imported array; zero network calls.
+   Keep the original chromosome, coordinate, and two observed alleles.
+   This is a lookup, never a medical variant classification. */
+export function searchImportedSnps(dataset, input, {max=100}={}){
+  if(!dataset||!(dataset.calls instanceof Map)||!dataset.qc.completed)throw Error("Complete local array required");
+  const q=String(input??"").trim();
+  if(!q)throw Error("Please enter at least one rsID.");
+  const tokens=q.split(/[\s,;]+/).filter(Boolean).map(x=>x.toLowerCase());
+  if(tokens.length>max)throw Error("Too many rsIDs in one query (maximum "+max+").");
+  if(tokens.some(x=>!RS.test(x)))throw Error("One or more marker IDs are invalid; use rs123456.");
+  const unique=[...new Set(tokens)];
+  return {status:"LOCAL_SNP_LOOKUP_NO_RISK_INTERPRETATION",build:dataset.qc.build,
+    looked_up:unique.length,matched:unique.filter(id=>dataset.calls.has(id)).length,
+    variants:unique.map(rsid=>{
+       const v=dataset.calls.get(rsid);
+       return {rsid,genotype:v?.gt??null,chromosome:v?.chr??null,position:v?.pos??null,
+         status:v?"ARRAY_CALL_UNVERIFIED":"NOT_GENOTYPED",
+         study_search_url:"https://www.ebi.ac.uk/gwas/search?query="+rsid,
+         reference_search_url:"https://grch37.ensembl.org/Homo_sapiens/Variation/Explore?v="+rsid};
+    }),
+    cautions:["Raw allele strings are not independently verified or harmonized to study effect alleles.",
+      "Missing variant is unknown, not normal genotype.",
+      "Links open public databases with only a public rsID; your private alleles are not sent."]};
 }
