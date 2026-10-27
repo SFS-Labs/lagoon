@@ -29,6 +29,8 @@ jobs:
           node-version: '22'
       - name: iPhone PWA browser SNP engine, privacy and 609346-row benchmark
         run: node --test genomics/web/tests/*.test.mjs
+      - name: Independent Python-vs-browser genotype parser parity (offline synthetic only)
+        run: python -m genomics.parity_check
       - name: Syntax compile
         run: python -m compileall -q genomics
       - name: MCP initialisation smoke test
