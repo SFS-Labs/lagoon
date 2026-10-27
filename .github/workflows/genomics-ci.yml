@@ -29,7 +29,7 @@ jobs:
       - name: MCP initialisation smoke test
         run: |
           printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","clientInfo":{"name":"ci","version":"1"},"capabilities":{}}}' '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' | python -m genomics.mcp mcp > /tmp/mcp-responses.jsonl
-          python -c 'import json; a=[json.loads(x) for x in open("/tmp/mcp-responses.jsonl")]; assert a[0]["result"]["serverInfo"]["name"] == "lagoon-genomics-research"; assert len(a[1]["result"]["tools"]) == 7'
+          python -c 'import json; a=[json.loads(x) for x in open("/tmp/mcp-responses.jsonl")]; assert a[0]["result"]["serverInfo"]["name"] == "lagoon-genomics-research"; assert len(a[1]["result"]["tools"]) == 8'
       - name: Public research-provider live probe (diagnostic; no genotypes)
         if: matrix.python-version == '3.12'
         continue-on-error: true
