@@ -1,0 +1,29 @@
+name: Genomic upstream API smoke (public rsID only)
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'genomics/research.py'
+      - 'genomics/discovery.py'
+      - '.github/workflows/genomics-source-probe.yml'
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Query public research sources without genotype data
+        run: |
+          python - <<'PY'
+          from genomics.research import query_rsid
+          result = query_rsid('rs855791')
+          statuses = {key: val['status'] for key, val in result['sources'].items()}
+          print('Public-only rs855791 upstream status:', statuses)
+          assert all(v in ('ok', 'unavailable') for v in statuses.values())
+          assert any(v == 'ok' for v in statuses.values()), 'No upstream research source responded'
+          PY
