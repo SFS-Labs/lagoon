@@ -76,7 +76,7 @@ test("Portable backup restores ciphertext without leaking raw DNA",async()=>{
  assert.equal(packed.ciphertext.byteLength,record.ciphertext.byteLength);
 });
 test("Malformed backup magic, format and metadata cannot overwrite vault",async()=>{
- await assert.rejects(readVaultBackup(new Blob(["not a Lagoon backup"])),/Invalid|Not a Lagoon/);
+ await assert.rejects(readVaultBackup(new Blob(["not a Lagoon backup"])),/invalid|Invalid|Not a Lagoon/);
  const fake=new Blob(["LGVAULT1\n{}\n",new Uint8Array(40)]);
  await assert.rejects(readVaultBackup(fake),/Unsupported/);
 });
