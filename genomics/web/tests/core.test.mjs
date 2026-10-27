@@ -88,7 +88,8 @@ test("malformed identifiers and insertion-deletion alleles are separately counte
  assert.equal(data.qc.valid,1);
  assert.equal(data.qc.rejected,7);
  assert.equal(data.qc.no_calls,1);
- assert.equal(data.qc.rejectionReasons.non_rsid_marker,2);
+ assert.equal(data.qc.rejectionReasons.non_rsid_marker,1);
+ assert.equal(data.qc.rejectionReasons.malformed_line,1);
  assert.equal(data.qc.rejectionReasons.non_snv_indel,2);
  assert.equal(data.qc.rejectionReasons.unsupported_alleles,1);
  assert.equal(data.qc.rejectionReasons.invalid_chromosome,1);
