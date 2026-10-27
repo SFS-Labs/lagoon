@@ -12,9 +12,11 @@ from pathlib import Path
 try:
     from .engine import analyze, parse_calls, research_summary, GenotypeError, EVIDENCE
     from .research import query_rsid, verify_reported_locus
+    from .discovery import scan_trait_calls
 except ImportError:
     from engine import analyze, parse_calls, research_summary, GenotypeError, EVIDENCE
     from research import query_rsid, verify_reported_locus
+    from discovery import scan_trait_calls
 
 PROTOCOL = "2025-06-18"
 TOOLS = [
@@ -28,6 +30,9 @@ TOOLS = [
     {"name": "verify_micronutrient_variant_coordinates",
      "description": "Verify GRCh37 position and allele correspondence. ONLY rsID sent externally. Research-only.",
      "inputSchema": {"type": "object", "properties": {"rsids": {"type": "array", "items": {"type": "string", "pattern": "^rs[0-9]+$"}, "maxItems": 12}}, "additionalProperties": False}},
+    {"name": "scan_private_genome_against_gwas_trait",
+     "description": "Discover candidate associations for nutrient traits from public GWAS v2 and intersect with private genotypes LOCALLY. Bounded 1-5 pages; NO individual risk scores.",
+     "inputSchema": {"type": "object", "properties": {"trait": {"type": "string", "enum": ["b12", "folate", "vitamin_d", "iron", "ferritin", "zinc", "calcium", "magnesium", "selenium"]}, "pages": {"type": "integer", "minimum": 1, "maximum": 5}}, "required": ["trait"], "additionalProperties": False}},
     {"name": "lookup_public_variant_evidence",
      "description": "Retrieve live raw annotation snippets for a public rsID from GWAS Catalog v2, Ensembl GRCh37 and Europe PMC. Does not transmit DNA data; raw results are NOT effect allele-harmonised.",
      "inputSchema": {"type": "object", "properties": {"rsid": {"type": "string", "pattern": "^rs[0-9]+$"}},
@@ -80,6 +85,11 @@ def execute(name, args):
                 except (RuntimeError, ValueError) as exc:
                     output[rsid] = {"status": "UPSTREAM_ERROR", "error_type": type(exc).__name__}
         return {"reference_validation": output, "interpretation": "research-only"}
+    if name == "scan_private_genome_against_gwas_trait":
+        data = source()
+        if data is None:
+            return {"status": "NO_PRIVATE_RAW_FILE"}
+        return scan_trait_calls(data["calls"], args["trait"], args.get("pages", 2))
     if name == "lookup_public_variant_evidence":
         return query_rsid(args["rsid"])
     raise ValueError("Unknown tool")
