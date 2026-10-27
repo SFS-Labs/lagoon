@@ -24,6 +24,11 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Synthetic fixture tests only
         run: python -m unittest discover -s genomics/tests -v
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: iPhone PWA browser SNP engine, privacy and 609346-row benchmark
+        run: node --test genomics/web/tests/*.test.mjs
       - name: Syntax compile
         run: python -m compileall -q genomics
       - name: MCP initialisation smoke test
