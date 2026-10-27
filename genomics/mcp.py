@@ -10,11 +10,11 @@ import sys
 from pathlib import Path
 
 try:
-    from .engine import analyze, parse_calls, research_summary, GenotypeError
-    from .research import query_rsid
+    from .engine import analyze, parse_calls, research_summary, GenotypeError, EVIDENCE
+    from .research import query_rsid, verify_reported_locus
 except ImportError:
-    from engine import analyze, parse_calls, research_summary, GenotypeError
-    from research import query_rsid
+    from engine import analyze, parse_calls, research_summary, GenotypeError, EVIDENCE
+    from research import query_rsid, verify_reported_locus
 
 PROTOCOL = "2025-06-18"
 TOOLS = [
@@ -25,6 +25,9 @@ TOOLS = [
      "description": "Analyze cited SNP associations for B12, iron, vitamin D, folate, lactose, and unresolved malabsorption possibilities. Distinguishes biomarkers from absorption; no individual probability without calibrated model.",
      "inputSchema": {"type": "object", "properties": {"format": {"type": "string", "enum": ["json", "markdown"]}},
                      "additionalProperties": False}},
+    {"name": "verify_micronutrient_variant_coordinates",
+     "description": "Verify GRCh37 position and allele correspondence. ONLY rsID sent externally. Research-only.",
+     "inputSchema": {"type": "object", "properties": {"rsids": {"type": "array", "items": {"type": "string", "pattern": "^rs[0-9]+$"}, "maxItems": 12}}, "additionalProperties": False}},
     {"name": "lookup_public_variant_evidence",
      "description": "Retrieve live raw annotation snippets for a public rsID from GWAS Catalog v2, Ensembl GRCh37 and Europe PMC. Does not transmit DNA data; raw results are NOT effect allele-harmonised.",
      "inputSchema": {"type": "object", "properties": {"rsid": {"type": "string", "pattern": "^rs[0-9]+$"}},
@@ -54,6 +57,29 @@ def execute(name, args):
         if args.get("format") == "markdown":
             return research_summary(output)
         return output
+    if name == "verify_micronutrient_variant_coordinates":
+        data = source()
+        if data is None:
+            return {"status": "NO_PRIVATE_RAW_FILE"}
+        known = {item["rsid"] for item in EVIDENCE}
+        requested = args.get("rsids") or sorted(known.intersection(data["calls"]))
+        if not isinstance(requested, list) or len(requested) > 12:
+            raise ValueError("Maximum 12 rsIDs")
+        output = {}
+        for rsid in requested:
+            if rsid not in known:
+                output[rsid] = {"status": "NOT_IN_CURATED_PANEL"}
+            elif rsid not in data["calls"]:
+                output[rsid] = {"status": "NOT_GENOTYPED"}
+            else:
+                record = data["calls"][rsid]
+                try:
+                    output[rsid] = verify_reported_locus(
+                        rsid, record["chromosome"], record["position"],
+                        record["genotype"], data["qc"]["build"])
+                except (RuntimeError, ValueError) as exc:
+                    output[rsid] = {"status": "UPSTREAM_ERROR", "error_type": type(exc).__name__}
+        return {"reference_validation": output, "interpretation": "research-only"}
     if name == "lookup_public_variant_evidence":
         return query_rsid(args["rsid"])
     raise ValueError("Unknown tool")
