@@ -81,7 +81,7 @@ export async function parseArray(file,{onProgress=()=>{},maxBytes=MAX_BYTES,maxR
     if(current){
       if(current.gt===geno&&current.chr===chr&&current.pos===pos){qc.duplicates++;return;}
       calls.delete(id);conflicts.add(id);qc.conflicts++;
-      qc.chromosomeCounts[chr]=Math.max(0,(qc.chromosomeCounts[chr]??1)-1);return;
+      qc.chromosomeCounts[current.chr]=Math.max(0,(qc.chromosomeCounts[current.chr]??1)-1);return;
     }
     calls.set(id,{chr,pos,gt:geno});
     qc.chromosomeCounts[chr]=(qc.chromosomeCounts[chr]??0)+1;
@@ -106,6 +106,14 @@ export async function parseArray(file,{onProgress=()=>{},maxBytes=MAX_BYTES,maxR
     if(!header)throw Error("No genotype header found.");
     if(qc.valid<1)throw Error("No valid genetic calls.");
     qc.valid=calls.size;
+    const accounted=qc.valid+qc.no_calls+qc.rejected+qc.duplicates+qc.conflicts;
+    // This identity holds for standard unique exports. Once a conflicting
+    // locus is excluded, its two rows become one conflict plus one removed
+    // call; report that explicitly without silently inventing an extra SNP.
+    qc.rejectedBreakdownVerified=Object.values(qc.rejectionReasons).reduce((a,b)=>a+b,0)===qc.rejected;
+    qc.accounting_note=(qc.conflicts||qc.duplicates)
+      ?"Doppel- oder Konfliktzeilen separat prüfen; Summen nicht blind addieren."
+      :(accounted===qc.rows?"Alle Datenzeilen vollständig klassifiziert.":"Summendifferenz untersuchen.");
     qc.completed=completed;
     onProgress(100);
     return {calls,qc,conflictCount:conflicts.size};
