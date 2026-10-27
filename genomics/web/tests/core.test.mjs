@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {parseArray,makeCandidateReport,EVIDENCE} from "../analysis-core.mjs";
+import {parseArray,makeCandidateReport,searchImportedSnps,EVIDENCE} from "../analysis-core.mjs";
 const make=(text)=>{const b=new Blob([text]);return {size:b.size,stream:()=>b.stream()};};
 const header="# MyHeritage DNA raw data; genome build 37\nRSID\tCHROMOSOME\tPOSITION\tRESULT\n";
 test("browser-only SNP array parser with MyHeritage RESULT columns",async()=>{
