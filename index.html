@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="./style.css">
 </head>
 <body>
-<header><h1>Lagoon Genomics</h1><p class="sub">Private DNA-SNP-Analyse · iPhone-tauglich · kostenlos · ohne Cloud-Upload</p></header>
+<header><h1>Lagoon Genomics</h1><small class="version">Version 0.4 · Lokaler Vollgenom-Index</small><p class="sub">Private DNA-SNP-Analyse · iPhone-tauglich · kostenlos · ohne Cloud-Upload</p></header>
 <main>
 <section class="panel">
 <h2>1. Originaldatei auf deinem Gerät auswählen</h2>
@@ -18,6 +18,7 @@
 <input id="raw" type="file" accept=".txt,.tsv,.csv,text/plain,text/csv">
 <progress id="progress" value="0" max="100" hidden></progress>
 <output id="notice" role="status" aria-live="polite">Noch keine DNA-Datei verarbeitet.</output>
+<div id="qcDetails" class="qc-details" hidden></div>
 <small>Akzeptiert rsid/chromosome/position/genotype oder result. Dateien anderer Genome-Builds werden für genetische Interpretation gesperrt.</small>
 </section>
 <section class="panel">
@@ -33,11 +34,22 @@
 <button id="erase" disabled>Aus Speicher löschen</button></div>
 <p class="warn"><strong>Datenschutz:</strong> Erst das bewusste Kopieren/Teilen überträgt ausgewählte Genotypen an ChatGPT oder andere Dienste. Die bloße Analyse tut das nicht.</p>
 <output id="summary"></output>
-<div class="scroller"><table><thead><tr><th>SNP</th><th>Gen</th><th>Array-Call</th><th>Endpunkt</th><th>Forschung</th></tr></thead>
-<tbody id="results"></tbody></table></div>
+<div id="results" class="marker-list" role="list" aria-label="Forschungsmarker"></div>
 </section>
 <section class="panel">
-<h2>3. Interpretationsgrenzen</h2>
+<h2>3. Alle SNPs einzeln oder in Gruppen abfragen</h2>
+<p>Durchsuche alle eingelesenen rsIDs, nicht nur die zehn Forschungsmarker. Genotypen bleiben lokal. Mehrere rsIDs mit Leerzeichen, Komma oder Zeilenumbruch trennen (maximal 100).</p>
+<label for="rsSearch">rsID-Suche</label>
+<textarea id="rsSearch" rows="2" spellcheck="false" autocapitalize="none" placeholder="rs855791, rs4988235, rs1801133"></textarea>
+<div class="actions">
+<button id="lookup" disabled>Im gesamten Rohdatensatz suchen</button>
+<button id="copyLookup" disabled>Nur ausgewählte Treffer kopieren</button>
+</div>
+<output id="lookupSummary" role="status" aria-live="polite"></output>
+<div id="lookupResults" class="marker-list" role="list" aria-label="Individuelle SNP-Abfrage"></div>
+</section>
+<section class="panel">
+<h2>4. Interpretationsgrenzen</h2>
 <p>Das Tool diagnostiziert weder Malabsorption noch einen Mikronährstoffmangel. Assoziationen mit Serumwerten sind nicht gleichbedeutend mit intestinaler Resorption. Fehlende SNPs, HLA-Haplotypen und seltene Krankheitsvarianten sind nicht negativ getestet.</p>
 <p>Für persönliche Schlussfolgerungen braucht es zusätzliche Referenzallel- und Strangprüfung, populationsspezifische Studien sowie ggf. Laborwerte. Alle gezeigten Marker sind Forschungsansätze und keine bestätigten klinischen Befunde.</p>
 <small>Quellcode und Tests im öffentlichen GitHub-PR. Die DNA-Datei wird niemals in das GitHub-Repository übertragen.</small>
