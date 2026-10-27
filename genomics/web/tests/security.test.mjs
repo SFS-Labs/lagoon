@@ -21,3 +21,14 @@ test("public service worker only caches safe application assets",()=>{
   assert.match(sw,/u\.origin!==self\.location\.origin/);
   assert.match(sw,/FILES\.some/);
 });
+
+test("mobile UI has cards, all-array lookup and no raw genotype uploads",()=>{
+ assert.match(html,/id="lookup"/);
+ assert.match(html,/id="rsSearch"/);
+ assert.match(html,/id="qcDetails"/);
+ assert.match(html,/id="lookupResults"/);
+ assert.doesNotMatch(html,/data-upload/);
+ const css=readFileSync(resolve(root,"style.css"),"utf8");
+ assert.match(css,/\.marker-card/);
+ assert.match(css,/@media\(min-width:720px\)/);
+});
