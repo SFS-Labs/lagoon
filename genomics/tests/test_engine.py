@@ -51,7 +51,7 @@ class CoreTests(unittest.TestCase):
     def test_mcp_no_file_no_leak(self):
         os.environ.pop("GENOMICS_RAW_FILE", None)
         self.assertEqual(execute("analyze_micronutrient_genetics", {})["status"], "NO_PRIVATE_RAW_FILE")
-        self.assertEqual(len(TOOLS), 7)
+        self.assertEqual(len(TOOLS), 8)
     def test_csv_not_tsv(self):
         self.write("rsid,chromosome,position,genotype\nrs855791,22,10,TT\n")
         self.assertEqual(parse_calls(self.path)["calls"]["rs855791"]["genotype"], "TT")
