@@ -1,0 +1,10 @@
+{
+  "name": "Lagoon Genomics - Private SNP Research",
+  "short_name": "Lagoon DNA",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#154d84",
+  "description": "Private SNP-Array Auswertung direkt auf dem eigenen Gerät ohne Cloud-Upload."
+}
