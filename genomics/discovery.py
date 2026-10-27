@@ -82,7 +82,7 @@ def scan_trait_calls(calls: dict, trait: str, pages: int = 2) -> dict:
         "requested_trait": trait, "query": _ALLOWED[trait],
         "provider": "GWAS Catalog v2, curated top associations only",
         "inspected_association_records": inspected, "completed_pages": completed,
-        "page_budget_exhausted": completed == pages,
+        "page_budget_exhausted": completed == pages and bool(associations),
         "raw_input_not_uploaded": True,
         "no_match_means": "No match in the retrieved subset, NOT no genetic association",
         "statistical_limit": "Effect allele, study population, p value, CI, LD and ancestry unverified",
