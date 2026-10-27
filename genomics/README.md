@@ -122,3 +122,25 @@ Security: The GitHub repository and this PR are **PUBLIC** and already contain
 personal-genotype descriptions. Avoid expanding that disclosure. To revoke
 historical exposure, a private repository and history remediation must be planned;
 deleting a current file alone does not remove its Git history.
+
+## Trait-first matching against the private genome
+
+Use the fifth tool: `scan_private_genome_against_gwas_trait` with one of
+`b12`, `folate`, `vitamin_d`, `iron`, `ferritin`, `zinc`, `calcium`,
+`magnesium`, `selenium`, and `pages` from 1 to 5.
+
+Workflow: query the GWAS Catalog v2 by nutrient phenotype using only a PUBLIC
+trait string, parse a bounded set of returned rsIDs, intersect with the local
+raw-genotype calls without exporting them, return candidate markers to the MCP
+client with explicit `NOT_HARMONIZED` status.
+
+This is a discovery/triage feature, NOT an exhaustive scan: GWAS records are
+paginated, limited to selected top associations, and the response parser
+rejects unknown upstream schemas. It must not be used for odds ratio
+computation without independent build/allele and study-level verification.
+
+See [39-step implementation gates](IMPLEMENTATION_GATES.md) for roadmap and
+acceptance criteria. Optional open-source research federation:
+[BioMCP](https://github.com/genomoncology/biomcp), mostly free public APIs,
+with optional keys for rate improvements. Its integration has not been tested
+in this repository.
