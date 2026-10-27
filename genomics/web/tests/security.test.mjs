@@ -18,7 +18,7 @@ test("strict no-network HTML CSP and locally hosted scripts/styles",()=>{
 test("public service worker only caches safe application assets",()=>{
   assert.doesNotMatch(sw,/\b(?:rawFile|rs601338|localStorage)\b|indexedDB\.(?:open|deleteDatabase)/i);
   assert.match(sw,/e\.request\.method!=="GET"/);
-  assert.match(sw,/u\.origin!==self\.location\.origin/);
+  assert.match(sw,/url\.origin!==self\.location\.origin/);
   assert.match(sw,/FILES\.some/);
   assert.match(sw,/\.\/vault\.mjs\?v=6/);
 });
