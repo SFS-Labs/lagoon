@@ -17,6 +17,8 @@ try:
     from .statistics import assess_study_effect
     from .questions import answer_question
     from .harmonization import explore_public_study_locus
+    from .ld import identify_ld_blocks
+    from .clinical import assess_locus_claim, claim_scope
 except ImportError:
     from engine import analyze, parse_calls, research_summary, GenotypeError, EVIDENCE
     from research import query_rsid, verify_reported_locus
@@ -25,6 +27,8 @@ except ImportError:
     from statistics import assess_study_effect
     from questions import answer_question
     from harmonization import explore_public_study_locus
+    from ld import identify_ld_blocks
+    from clinical import assess_locus_claim, claim_scope
 
 PROTOCOL = "2025-06-18"
 TOOLS = [
@@ -53,6 +57,23 @@ TOOLS = [
     {"name": "inspect_gwas_study_allele_evidence",
      "description": "Read actual GWAS v2 study effect-allele metadata for one public rsID; optionally compare the private array call with Ensembl GRCh37 WITHOUT transmitting personal genotype data. Unresolved strand, no dosage or risk.",
      "inputSchema": {"type": "object", "properties": {"rsid": {"type": "string", "pattern": "^rs[0-9]+$"}}, "required": ["rsid"], "additionalProperties": False}},
+    {"name": "assess_reference_population_ld",
+     "description": "Compare 2–5 PUBLIC SNP identifiers at Ensembl GRCh37 using 1000G reference ancestry (EUR/AFR/EAS/SAS/AMR), report high-LD clusters; no personal genotypes transmitted, no invented independence or PRS.",
+     "inputSchema": {"type": "object", "properties": {
+       "rsids": {"type": "array", "items": {"type": "string", "pattern": "^rs[0-9]+$"},
+                 "minItems": 2, "maxItems": 5},
+       "population": {"type": "string", "enum": ["EUR","AFR","AMR","EAS","SAS"]}},
+       "required": ["rsids"], "additionalProperties": False}},
+    {"name": "classify_variant_clinical_endpoint",
+     "description": "Clarify what serum B12, iron, 25(OH)D, folate, lactase phenotype, hereditary iron overload, and clinical malabsorption can or cannot indicate.",
+     "inputSchema": {"type": "object", "properties": {
+       "endpoint": {"type": "string", "enum": ["serum_b12","serum_iron","serum_vitamin_d","serum_folate","lactase_persistence","iron_overload","malabsorption"]}},
+       "required": ["endpoint"], "additionalProperties": False}},
+    {"name": "audit_primary_study_allele_and_effect",
+     "description": "Audit caller-supplied study effect/allele metadata against private array and public Ensembl reference, enforce GRCh37 forward study orientation, ancestry, model, independent replication, CI/SE and clinical endpoint. Data source authenticity still requires manual validation.",
+     "inputSchema": {"type": "object", "properties": {
+       "study": {"type":"object"}, "ancestry_match_evidence": {"type":"boolean"}},
+       "required":["study"], "additionalProperties":False}},
     {"name": "lookup_public_variant_evidence",
      "description": "Retrieve live raw annotation snippets for a public rsID from GWAS Catalog v2, Ensembl GRCh37 and Europe PMC. Does not transmit DNA data; raw results are NOT effect allele-harmonised.",
      "inputSchema": {"type": "object", "properties": {"rsid": {"type": "string", "pattern": "^rs[0-9]+$"}},
@@ -159,6 +180,29 @@ def execute(name, args):
             return explore_public_study_locus(rsid)
         return explore_public_study_locus(rsid, data["calls"].get(rsid),
                                           build=data["qc"]["build"])
+    if name == "assess_reference_population_ld":
+        return identify_ld_blocks(args["rsids"],population=args.get("population","EUR"))
+    if name == "classify_variant_clinical_endpoint":
+        return claim_scope(args["endpoint"])
+    if name == "audit_primary_study_allele_and_effect":
+        study = args.get("study")
+        if not isinstance(study,dict):
+            raise ValueError("Study evidence object required")
+        rsid = study.get("rsid")
+        if not isinstance(rsid,str) or not rsid.startswith("rs") or not rsid[2:].isdigit():
+            raise ValueError("Valid public rsID required")
+        data=source()
+        call=data["calls"].get(rsid) if data else None
+        reference={"status":"NOT_GENOTYPED"}
+        if call and data:
+            try:
+                reference=verify_reported_locus(rsid,call["chromosome"],call["position"],
+                                               call["genotype"],data["qc"]["build"])
+            except (ValueError,RuntimeError):
+                reference={"status":"UPSTREAM_UNAVAILABLE"}
+        return assess_locus_claim(study,genotype=call["genotype"] if call else None,
+                                  reference=reference,
+                                  ancestry_matching_evidence=args.get("ancestry_match_evidence") is True)
     if name == "lookup_public_variant_evidence":
         return query_rsid(args["rsid"])
     raise ValueError("Unknown tool")
