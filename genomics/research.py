@@ -55,3 +55,53 @@ def query_rsid(rsid: str) -> dict:
     return {"rsid": rsid, "privacy": "Only this public rsID was transmitted; no genotype",
             "interpretation_status": "RAW_SOURCE_DATA_NOT_ALLELE_HARMONISED",
             "sources": sources}
+
+
+def verify_reported_locus(rsid: str, chromosome: str, position: str,
+                          genotype: str, build: str = "GRCh37") -> dict:
+    """Check public reference coordinates and allele spelling, NOT chip accuracy.
+
+    External requests contain rsID only. Chromosome, coordinates and the
+    personal genotype are compared locally after the reference response.
+    """
+    if build != "GRCh37":
+        return {"rsid": rsid, "status": "UNSUPPORTED_OR_UNKNOWN_BUILD"}
+    if not RSID.fullmatch(rsid):
+        raise ValueError("Invalid rsID")
+    if not re.fullmatch(r"[ACGT]{1,2}", genotype):
+        return {"rsid": rsid, "status": "INVALID_GENOTYPE"}
+    source_url = URLS["ensembl_grch37"] + rsid.lower()
+    record = get_json(source_url, {"content-type": "application/json"})
+    candidates = []
+    for mapping in record.get("mappings", []):
+        assembly = str(mapping.get("assembly_name", "")).upper()
+        if assembly not in ("GRCH37", "HG19"):
+            continue
+        chrom = str(mapping.get("seq_region_name", "")).upper().removeprefix("CHR")
+        pos = str(mapping.get("start", ""))
+        candidates.append(chrom + ":" + pos)
+        if chrom != str(chromosome).upper().removeprefix("CHR") or pos != str(position):
+            continue
+        allele_list = str(mapping.get("allele_string", "")).upper().split("/")
+        allowed = set(x for x in allele_list if len(x) == 1 and x in "ACGT")
+        if not allowed:
+            return {"rsid": rsid, "status": "REFERENCE_ALLELES_UNSUPPORTED",
+                    "clinical_call_confirmed": False}
+        gt = set(genotype)
+        flipped = set(genotype.translate(str.maketrans("ACGT", "TGCA")))
+        if allowed == {"A", "T"} or allowed == {"C", "G"}:
+            if gt <= allowed or flipped <= allowed:
+                return {"rsid": rsid, "status": "PALINDROMIC_STRAND_UNRESOLVED",
+                        "coordinates_verified": True, "clinical_call_confirmed": False}
+        if gt <= allowed:
+            return {"rsid": rsid, "status": "GRCH37_COORDINATE_ALLELES_MATCH",
+                    "coordinates_verified": True, "clinical_call_confirmed": False,
+                    "source": source_url}
+        if flipped <= allowed:
+            return {"rsid": rsid, "status": "STRAND_FLIP_CANDIDATE_UNRESOLVED",
+                    "coordinates_verified": True, "clinical_call_confirmed": False,
+                    "source": source_url}
+        return {"rsid": rsid, "status": "REFERENCE_ALLELES_MISMATCH",
+                "coordinates_verified": True, "clinical_call_confirmed": False}
+    return {"rsid": rsid, "status": "REFERENCE_MAPPING_MISMATCH_OR_UNAVAILABLE",
+            "reference_loci": candidates[:8], "clinical_call_confirmed": False}
