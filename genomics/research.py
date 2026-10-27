@@ -12,6 +12,7 @@ HEADERS = {"User-Agent": "SFS-Labs-GenomicResearch/0.1 (nonclinical; public rsID
 URLS = {
     "gwas_catalog_v2": "https://www.ebi.ac.uk/gwas/rest/api/v2/associations",
     "ensembl_grch37": "https://grch37.rest.ensembl.org/variation/human/",
+    "ensembl_ld_pairwise": "https://grch37.rest.ensembl.org/ld/human/pairwise/",
     "europe_pmc": "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
 }
 def get_json(url: str, params: dict | None = None, retries: int = 2) -> dict:
@@ -24,7 +25,10 @@ def get_json(url: str, params: dict | None = None, retries: int = 2) -> dict:
             with urlopen(Request(url, headers=HEADERS), timeout=12) as response:
                 if int(response.headers.get("Content-Length", "0")) > 1_500_000:
                     raise ValueError("Upstream response too large")
-                return json.loads(response.read(1_500_001))
+                body = response.read(1_500_001)
+                if len(body) > 1_500_000:
+                    raise ValueError("Upstream body too large")
+                return json.loads(body)
         except (HTTPError, URLError, TimeoutError, ValueError) as e:
             if attempt == retries or (isinstance(e, HTTPError) and e.code not in (429, 500, 502, 503)):
                 raise RuntimeError(f"Upstream unavailable ({type(e).__name__})") from None
