@@ -33,7 +33,7 @@ Each step is DONE only if code or governance is actually implemented; OPEN means
 | 25 | Evidence retrieval | Integrate official GWAS Catalog MCP as a tool option | OPEN |
 | 26 | Evidence retrieval | Integrate official Open Targets MCP as a tool option | OPEN |
 | 27 | Evidence retrieval | Evaluate BioMCP for ClinVar, ClinGen, gnomAD, literature | OPEN |
-| 28 | Evidence retrieval | Build trait-first discovery with pagination and local intersect | OPEN |
+| 28 | Evidence retrieval | Build trait-first discovery with pagination and local intersect | PARTIAL |
 | 29 | Evidence retrieval | Cache/source-snapshot and respect rate limits and licensing | OPEN |
 | 30 | Statistical reliability | Require effect allele/strand and GRCh37 allele normalization | OPEN |
 | 31 | Statistical reliability | Require OR or beta, confidence interval, unit, phenotype and ancestry | OPEN |
@@ -46,9 +46,9 @@ Each step is DONE only if code or governance is actually implemented; OPEN means
 | 38 | Delivery and QA | Independent dry run on real genomics file with approved access | OPEN |
 | 39 | Delivery and QA | Authenticated remote or secure tunnel iPhone workflow, adversarial QA | OPEN |
 
-**As of 2026-10-27: 20/39 documented gates met in code/design; 19 unresolved.**
+**As of 2026-10-27: 20/39 documented gates met in code/design; 1 partially implemented; 18 unresolved.**
 
-**Do not merge as 'ready for personalized clinical recommendations'.** Test coverage on synthetic fixtures and working stdio protocol is necessary but not sufficient.
+PARTIAL means synthetics exist but external live data and complete association coverage remain unverified.\n\n**Do not merge as 'ready for personalized clinical recommendations'.** Test coverage on synthetic fixtures and working stdio protocol is necessary but not sufficient.
 
 Primary free data infrastructure: official GWAS Catalog MCP (https://ebi.ac.uk/gwas/mcp), official Open Targets Platform MCP (https://mcp.platform.opentargets.org/mcp), and optionally BioMCP (https://github.com/genomoncology/biomcp). Other research sources can be consulted by free read-only HTTP adapters. Validate provider terms and authentication before production.
 
