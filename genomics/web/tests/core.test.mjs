@@ -62,3 +62,52 @@ test("curated web registry has ten candidates and distinct normalized SNP IDs",(
  assert.equal(EVIDENCE.length,10);
  assert.equal(new Set(EVIDENCE.map(x=>x.rsid)).size,10);
 });
+
+test("the observed MyHeritage GG call is a lookup, never an invented iron risk",async()=>{
+ const data=await parseArray(make(header+"rs855791\t22\t37462936\tGG\n"));
+ const result=searchImportedSnps(data,"rs855791, rs601338, rs855791");
+ assert.equal(result.looked_up,2);assert.equal(result.matched,1);
+ assert.equal(result.variants[0].genotype,"GG");
+ assert.equal(result.variants[0].status,"ARRAY_CALL_UNVERIFIED");
+ assert.equal(result.variants[1].status,"NOT_GENOTYPED");
+ assert.ok(!JSON.stringify(result).includes("individual_risk"));
+});
+
+test("malformed identifiers and insertion-deletion alleles are separately counted",async()=>{
+ const data=await parseArray(make(header+
+   "rs1\t1\t100\tAA\n"+
+   "i12345\t1\t101\tAC\n"+
+   "rs2\t1\t102\tII\n"+
+   "rs3\t1\t103\tDI\n"+
+   "rs4\t1\t104\tZZ\n"+
+   "rs5\tinvalid\t105\tTT\n"+
+   "rs6\t1\t0\tCC\n"+
+   "rs7\t1\t107\t--\n"+
+   "badrow\n"));
+ assert.equal(data.qc.rows,9);
+ assert.equal(data.qc.valid,1);
+ assert.equal(data.qc.rejected,7);
+ assert.equal(data.qc.no_calls,1);
+ assert.equal(data.qc.rejectionReasons.non_rsid_marker,2);
+ assert.equal(data.qc.rejectionReasons.non_snv_indel,2);
+ assert.equal(data.qc.rejectionReasons.unsupported_alleles,1);
+ assert.equal(data.qc.rejectionReasons.invalid_chromosome,1);
+ assert.equal(data.qc.rejectionReasons.invalid_position,1);
+ assert.equal(data.qc.rejectedBreakdownVerified,true);
+ assert.equal(data.qc.accounting_note,"Alle Datenzeilen vollständig klassifiziert.");
+});
+
+test("whole-array search rejects IDs other than public rsIDs and excess query sizes",async()=>{
+ const data=await parseArray(make(header+"rs1\t1\t100\tAC\n"));
+ assert.throws(()=>searchImportedSnps(data,"i12345"),/invalid/);
+ assert.throws(()=>searchImportedSnps(data,"rs1 rs2 rs3",{max:2}),/Too many/);
+ assert.equal(searchImportedSnps(data,"rs1 rs2").matched,1);
+});
+
+test("all local variant searches perform no fetch calls",async()=>{
+ const data=await parseArray(make(header+"rs855791\t22\t100\tGG\n"));
+ const prior=globalThis.fetch;
+ globalThis.fetch=()=>{throw Error("Unexpected network call");};
+ try{assert.equal(searchImportedSnps(data,"rs855791").variants[0].genotype,"GG");}
+ finally{globalThis.fetch=prior;}
+});
