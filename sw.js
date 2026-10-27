@@ -1,6 +1,6 @@
 /* Only versioned public app code is cached. Personal DNA files and analysis
  * outputs are never cached, uploaded or persisted by this service worker. */
-const KEY="lagoon-genomics-code-v4";
+const KEY="lagoon-genomics-code-v5";
 const FILES=["./index.html","./app.js","./analysis-core.mjs","./style.css","./manifest.webmanifest"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(KEY).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting()));});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==KEY).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});
