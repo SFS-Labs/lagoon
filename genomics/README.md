@@ -144,3 +144,48 @@ acceptance criteria. Optional open-source research federation:
 [BioMCP](https://github.com/genomoncology/biomcp), mostly free public APIs,
 with optional keys for rate improvements. Its integration has not been tested
 in this repository.
+
+## Research-engine V2 — eight MCP tools
+
+The standard-library MCP server now exposes:
+
+1. `genomic_dataset_status`
+2. `analyze_micronutrient_genetics`
+3. `verify_micronutrient_variant_coordinates`
+4. `scan_private_genome_against_gwas_trait`
+5. `inspect_private_genomic_input`
+6. `audit_quantitative_gwas_record`
+7. `answer_micronutrient_genetic_question`
+8. `lookup_public_variant_evidence`
+
+For the representative question, call `answer_micronutrient_genetic_question` with
+`{"nutrient":"all"}` only after `GENOMICS_RAW_FILE` is configured with a
+non-public array file. The response gives observed genotype status, published
+gene-trait association and its actual physiological domain, source URL and
+study population; every marker remains unconfirmed pending appropriate
+reference verification. No diagnosis or personalised percentage is invented.
+
+The `audit_quantitative_gwas_record` tool checks effect metadata and
+independent coordinates, using `genomics/statistics.py` and only public rsIDs
+in external requests. **The study record supplied to the tool is not verified
+against the actual paper by these numerical checks.** Explicit study-level
+review remains mandatory. Its `ancestry_match` is an asserted input, not a
+genetically inferred ancestry.
+
+Assay routing via `genomics/intake.py` prevents accidental interpretation
+of NGS VCF, FASTQ, BAM/CRAM, FASTA and gzip streams as SNP-array genotype
+text. A real WGS/WES request requires reference and tool preflight under
+the NGS router, not the consumer-array parser.
+
+GWAS v2 parsing was corrected against **live, observed**
+`_embedded.associations[].snp_allele[].rs_id` records, with regression tests.
+These rsID matches are discovery candidates, **not** harmonized allelic
+effect results. Multi-SNP haplotypes and reported SNP interaction records
+are skipped rather than treated as additive single-locus effects.
+
+See [integration audit](INTEGRATION_AUDIT.md) for actual Wolfram, NGS,
+Plasmole and Elicit calls and the precise free-tier restriction.
+
+Regression: `python -m unittest discover -s genomics/tests -v`.
+All automated tests use synthetic data. The public live API probe
+contains only an rsID and no individual genotypes.
