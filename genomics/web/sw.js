@@ -1,4 +1,4 @@
-const KEY="lagoon-genomics-code-v8";
+const KEY="sfs-genomics-brand-v9";
 const FILES=["./index.html","./app.js?v=8","./analysis-core.mjs?v=8",
  "./device-vault.mjs?v=8","./cloud-ui.mjs?v=8","./cloud-upload.mjs?v=8",
  "./style.css?v=8","./manifest.webmanifest"];
