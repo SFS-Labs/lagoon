@@ -1,10 +1,10 @@
 {
-  "name": "Lagoon Genomics - Private SNP Research",
-  "short_name": "Lagoon DNA",
+  "name": "SFS Genomics — AI-Native Genomic Intelligence",
+  "short_name": "SFS Genomics",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#154d84",
-  "description": "Private SNP-Array Auswertung direkt auf dem eigenen Gerät ohne Cloud-Upload."
+  "background_color": "#071526",
+  "theme_color": "#0e345e",
+  "description": "SFS Labs: modular genomic intelligence platform with AI-accessible MCP tools, population genetics and evidence-aware data infrastructure."
 }

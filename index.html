@@ -4,13 +4,29 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="referrer" content="no-referrer"><meta name="color-scheme" content="light dark">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src https://lagoon-genomics-mcp.sfs-labs.workers.dev; img-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'; frame-ancestors 'none'">
-<title>Lagoon Genomics — private SNP Explorer</title>
+<title>SFS Genomics | AI-Native Genomic Intelligence</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="stylesheet" href="./style.css?v=8">
 </head>
 <body>
-<header><h1>Lagoon Genomics</h1><small class="version">Version 1.0 · Cloud-Genomdatenbank + ChatGPT MCP</small><p class="sub">Persönliche Cloud-Datenbank · EU-Hosting · dauerhafte ChatGPT-MCP-Abfragen</p></header>
+<header class="brand-header">
+  <p class="eyebrow">SFS LABS / GENOMICS INTELLIGENCE</p>
+  <h1>SFS <span class="brand-accent">Genomics</span></h1>
+  <p class="tagline">AI-Native Genomic Intelligence Platform</p>
+  <p class="sub">A modular system connecting genomic data infrastructure, AI-accessible tools, population genetics and clinically contextualized research.</p>
+  <div class="brand-pills"><span>Genomic Data Engineering</span><span>AI &amp; MCP Infrastructure</span><span>Population Genetics</span><span>Evidence Validation</span></div>
+  <div class="brand-links"><a href="https://github.com/SFS-Labs/lagoon/blob/claude/analyze-snps-report-omgvm/genomics/PORTFOLIO.md" rel="noopener noreferrer" target="_blank">Architecture &amp; engineering</a><a href="https://github.com/SFS-Labs/lagoon/pull/1" rel="noopener noreferrer" target="_blank">Public implementation</a></div>
+  <small class="version">SFS Genomics · Genomic Intelligence Stack · Version 1.0</small>
+</header>
 <main>
+<section class="panel" aria-labelledby="overview-title">
+  <h2 id="overview-title">One genomic data layer. Multiple intelligence workflows.</h2>
+  <p>Reference-aware variant queries, cloud persistence, scientific provenance, LD quality control and AI-facing MCP tools are designed as interoperable components of a broader genomics intelligence stack.</p>
+  <p class="marker-meta">Public code and reproducible synthetic tests are visible in GitHub. Individual genotype records, cloud credentials and personal interpretations are not published on this site. Research software; not a validated clinical diagnostic system.</p>
+</section>
+<details class="operator-console">
+  <summary>Open private data console <span>Import · Cloud database · SNP explorer</span></summary>
+  <div class="operator-body">
 <section class="panel vault-panel">
 <h2>Cloud-Datenbank – einmalig übertragen</h2>
 <p>Deine vollständige Genotypdatei wird in der EU-Cloudflare-D1-Datenbank gespeichert. <strong>Nach diesem einen Import liest ChatGPT die Daten direkt über den authentifizierten Remote-MCP.</strong> Du musst die CSV später nicht erneut hochladen.</p>
@@ -80,6 +96,8 @@
 <p>Für persönliche Schlussfolgerungen braucht es zusätzliche Referenzallel- und Strangprüfung, populationsspezifische Studien sowie ggf. Laborwerte. Alle gezeigten Marker sind Forschungsansätze und keine bestätigten klinischen Befunde.</p>
 <small>Quellcode und Tests im öffentlichen GitHub-PR. Die DNA-Datei wird niemals in das GitHub-Repository übertragen.</small>
 </section>
+  </div>
+</details>
 </main>
 <script type="module" src="./app.js?v=8"></script>
 </body></html>
