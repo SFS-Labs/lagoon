@@ -1,9 +1,10 @@
 import {parseArray,makeCandidateReport,searchImportedSnps} from "./analysis-core.mjs?v=8";
 import {rememberGenome,openRememberedGenome,hasRememberedGenome,forgetRememberedGenome,browserStorageStatus}
   from "./device-vault.mjs?v=8";
-import {getOwnerToken,setOwnerToken,uploadGenomeToCloud,queryCloudStatus} from "./cloud-upload.mjs?v=8";
+import "./cloud-ui.mjs?v=8";
 const $=id=>document.getElementById(id);
 let dataset=null,report=null,lookup=null;
+Object.defineProperty(window,"getLagoonDataset",{value:()=>dataset,writable:false,configurable:false});
 const de=new Intl.NumberFormat("de-DE");
 function message(text){$("notice").textContent=text;}
 function resetViews(){
