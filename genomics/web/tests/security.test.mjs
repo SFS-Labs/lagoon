@@ -7,7 +7,7 @@ const get=file=>readFileSync(resolve(root,file),"utf8");
 const html=get("index.html"),app=get("app.js"),sw=get("sw.js"),vault=get("device-vault.mjs");
 test("Strict no-network browser CSP and versioned local-only assets",()=>{
  assert.match(html,/Content-Security-Policy/);
- assert.match(html,/connect-src https://lagoon-genomics-mcp.sfs-labs.workers.dev/);
+ assert.ok(html.includes("connect-src https://lagoon-genomics-mcp.sfs-labs.workers.dev"));
  assert.match(html,/script-src 'self'/);
  assert.match(html,/style-src 'self'/);
  assert.doesNotMatch(html,/<style\b/i);
