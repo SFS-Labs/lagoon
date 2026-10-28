@@ -31,6 +31,8 @@ jobs:
         run: node --test genomics/web/tests/*.test.mjs
       - name: Independent Python-vs-browser genotype parser parity (offline synthetic only)
         run: python -m genomics.parity_check
+      - name: Cloud MCP GRCh37 reference QC offline tests (synthetic only)
+        run: node --test genomics/cloud/tests/*.test.mjs
       - name: Cloud MCP script parse, no genetic data
         run: |
           node --check genomics/cloud/worker.mjs
