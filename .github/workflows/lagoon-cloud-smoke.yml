@@ -1,0 +1,40 @@
+name: Lagoon Cloud MCP public smoke
+on:
+  push:
+    paths:
+      - 'genomics/cloud/**'
+      - '.github/workflows/lagoon-cloud-smoke.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  public-endpoints:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Worker and browser cloud modules parse
+        run: |
+          node --check genomics/cloud/worker.mjs
+          node --check genomics/web/cloud-upload.mjs
+          node --check genomics/web/cloud-ui.mjs
+      - name: Public health and OAuth discovery (no genetic data)
+        run: |
+          set -e
+          BASE="https://lagoon-genomics-mcp.sfs-labs.workers.dev"
+          curl -fLsS --retry 2 --max-time 15 "$BASE/health" -o /tmp/lg-health.json
+          curl -fLsS --retry 2 --max-time 15 "$BASE/.well-known/oauth-authorization-server" -o /tmp/lg-oauth.json
+          curl -fLsS --retry 2 --max-time 15 "$BASE/.well-known/oauth-protected-resource/mcp" -o /tmp/lg-resource.json
+          python - <<'PY'
+          import json
+          a=json.load(open('/tmp/lg-health.json'))
+          b=json.load(open('/tmp/lg-oauth.json'))
+          c=json.load(open('/tmp/lg-resource.json'))
+          assert a['service']=='lagoon-genomics-mcp'
+          assert b['code_challenge_methods_supported']==['S256']
+          assert b['token_endpoint'].endswith('/token')
+          assert c['resource'].endswith('/mcp')
+          print('PASS: live public health, OAuth 2.1 PKCE discovery and protected MCP resource')
+          PY
