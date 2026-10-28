@@ -210,5 +210,14 @@ export default {async fetch(req,env){
   if(p==="/mcp")return await canRead(req,env)?out({error:"POST_required"},405):authChallenge(req);
   if(p.startsWith("/v1/import/"))return upload(req,env,p);
   return out({error:"not_found"},404);
- }catch(e){return out({error:"server_error",kind:e.name||"Error"},500,req.headers.get("Origin"));}
+ }catch(e){
+  const message=String(e?.message||e);
+  if(/exceeded D1.s free tier daily row read limit/i.test(message))
+   return out({error:"D1_DAILY_ROW_READ_QUOTA_EXCEEDED",state:"TEMPORARILY_UNAVAILABLE",
+    retry_after:"00:00 UTC next reset",genotype_absence_inferred:false},503,req.headers.get("Origin"));
+  if(/exceeded D1.s free tier daily row write limit/i.test(message))
+   return out({error:"D1_DAILY_ROW_WRITE_QUOTA_EXCEEDED",state:"TEMPORARILY_UNAVAILABLE",
+    retry_after:"00:00 UTC next reset",genotype_absence_inferred:false},503,req.headers.get("Origin"));
+  return out({error:"server_error",kind:e.name||"Error"},500,req.headers.get("Origin"));
+ }
 }};
