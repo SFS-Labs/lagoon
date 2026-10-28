@@ -31,7 +31,7 @@ An AI-accessible genomic intelligence stack connecting large consumer SNP-array 
 
 - A real iPhone browser import of a 609,346-row consumer SNP file produced 607,051 valid calls, 1,516 no-calls and 779 rejected rows. These numbers confirm ingestion, **not** clinical genotype validation.
 - Independent parsers and representative large synthetic files were tested.
-- The EU Cloudflare D1 database and remote Worker were provisioned; public Worker health and OAuth discovery succeeded.
+- The EU Cloudflare D1 database and remote Worker are deployed, and OAuth discovery plus authenticated private MCP round-trips succeeded. Independent D1 query confirmed **256 committed shards summing to 607,051 SNP calls**.
 - The public source and portfolio interface can be inspected independently.
 
 ## Explicit acceptance gates
@@ -39,10 +39,10 @@ An AI-accessible genomic intelligence stack connecting large consumer SNP-array 
 | Capability | Current position |
 |---|---|
 | Public engineering implementation and mobile SNP browser | Implemented |
-| Cloud database and remotely reachable MCP / OAuth metadata | Provisioned; public HTTP discovery verified |
-| Complete original SNP dataset persisted in cloud | **Not independently confirmed** |
-| User-authorized authenticated ChatGPT iPhone tool call | **Not independently confirmed** |
-| Source-verified effect-allele strand, study provenance, ancestry, LD and phenotype across all loci | Partial; evidence gates and manual review still needed |
+| Cloud database and remotely reachable MCP / OAuth metadata | **Live, authenticated, and successfully queried** |
+| Complete original SNP dataset persisted in cloud | **Verified: 256 shards / 607,051 calls** |
+| User-authorized authenticated ChatGPT iPhone tool call | **Verified: status, micronutrient panel, individual SNP and batch lookups** |
+| Source-verified effect-allele strand, study provenance, ancestry, LD and phenotype across all loci | **Five pinned GRCh37 loci + synthetic QC tests; full study/clinical harmonisation remains incomplete** |
 | Clinical-grade diagnosis or calibrated genetic penetrance | Not implemented or validated |
 
 **Why AI-native?** The platform uses machine-addressable, source-aware research and genomics tools intended for AI reasoning workflows. This does **not** claim that a production autonomous multi-agent diagnostic engine already exists.
@@ -61,4 +61,4 @@ Public: system architecture, code, synthetic tests, documentation, source adapte
 
 ## Supporting implementation
 
-- [Scientific core](README.md) · [Cloud operational status](cloud/DEPLOYMENT_STATUS.md) · [LD quality gates](ld.py) · [Clinical endpoints](clinical.py) · [Browser interface](web/index.html)
+- [Scientific core](README.md) · [Validation protocol](SCIENTIFIC_VALIDATION_PROTOCOL.md) · [Cloud operational status](cloud/DEPLOYMENT_STATUS.md) · [LD quality gates](ld.py) · [Clinical endpoints](clinical.py) · [Browser interface](web/index.html)
