@@ -1,4 +1,6 @@
-# Lagoon Genomics — Cloud Database & Remote MCP
+# SFS Genomics — Cloud Database & Remote MCP
+
+> Public product identity: **SFS Genomics**. The Worker, D1 database and website retain legacy `lagoon` technical identifiers to preserve existing URLs. See [portfolio overview](../PORTFOLIO.md).
 
 ## Actual deployment status (2026-10-28)
 
