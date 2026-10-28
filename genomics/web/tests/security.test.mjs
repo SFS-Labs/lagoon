@@ -24,6 +24,14 @@ test("Service worker caches only application assets, not genomic data",()=>{
  assert.doesNotMatch(sw,/\.put\(|indexedDB\.open\(/);
  assert.match(sw,/mode==="navigate"/);
 });
+test("SFS Genomics public branding and private-console separation",()=>{
+ assert.match(html,/SFS <span class="brand-accent">Genomics/);
+ assert.match(html,/AI-Native Genomic Intelligence Platform/);
+ assert.match(html,/class="operator-console"/);
+ assert.match(html,/SFS LABS/);
+ const manifest=get("manifest.webmanifest");
+ assert.match(manifest,/SFS Genomics/);
+});
 test("Mobile PWA search and chromosome cards work without a wide table",()=>{
  for(const id of ["lookup","rsSearch","qcDetails","lookupResults"]){
   assert.match(html,new RegExp('id="'+id+'"'));
