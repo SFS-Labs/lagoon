@@ -3,17 +3,32 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="referrer" content="no-referrer"><meta name="color-scheme" content="light dark">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'none'; img-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'; frame-ancestors 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src https://lagoon-genomics-mcp.sfs-labs.workers.dev; img-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'; frame-ancestors 'none'">
 <title>Lagoon Genomics — private SNP Explorer</title>
 <link rel="manifest" href="./manifest.webmanifest">
-<link rel="stylesheet" href="./style.css?v=7">
+<link rel="stylesheet" href="./style.css?v=8">
 </head>
 <body>
-<header><h1>Lagoon Genomics</h1><small class="version">Version 0.6 · Dauerhaft gespeichert, ohne Passwort</small><p class="sub">Private DNA-SNP-Analyse · iPhone-tauglich · kostenlos · ohne Cloud-Upload</p></header>
+<header><h1>Lagoon Genomics</h1><small class="version">Version 1.0 · Cloud-Genomdatenbank + ChatGPT MCP</small><p class="sub">Persönliche Cloud-Datenbank · EU-Hosting · dauerhafte ChatGPT-MCP-Abfragen</p></header>
 <main>
+<section class="panel vault-panel">
+<h2>Cloud-Datenbank – einmalig übertragen</h2>
+<p>Deine vollständige Genotypdatei wird in der EU-Cloudflare-D1-Datenbank gespeichert. <strong>Nach diesem einen Import liest ChatGPT die Daten direkt über den authentifizierten Remote-MCP.</strong> Du musst die CSV später nicht erneut hochladen.</p>
+<label for="cloudOwnerToken">Einmaliger privater Einrichtungscode</label>
+<input id="cloudOwnerToken" type="password" autocomplete="off" spellcheck="false" placeholder="64-stelliger Einrichtungscode">
+<div class="actions">
+<button id="cloudRememberToken">Cloud-Zugang auf diesem Gerät speichern</button>
+<button id="cloudStatusButton">Cloud-Datenbankstatus prüfen</button>
+<button id="cloudUploadButton" class="primary" disabled>Gesamten Genomdatensatz einmalig in die Cloud übertragen</button>
+</div>
+<progress id="cloudProgress" value="0" max="100" hidden></progress>
+<output id="cloudMessage" role="status" aria-live="polite">Cloud-Upload noch nicht gestartet. Bestehende lokal gespeicherte SNPs können ohne erneuten Dateiimport verwendet werden.</output>
+<p class="marker-meta">MCP-Endpunkt: <code>https://lagoon-genomics-mcp.sfs-labs.workers.dev/mcp</code></p>
+<p class="marker-meta">Sicherheit: Cloud-Abfragen erfolgen über OAuth, der Einrichtungscode wird nur einmal für den Upload und die erstmalige Kontoverbindung benötigt. Zugriff auf den Code oder das verknüpfte OAuth-Token ermöglicht Zugriff auf Genotypen. Die Cloud-Datenbank ersetzt den lokalen Browser-Tresor als dauerhafte Hauptdatenquelle.</p>
+</section>
 <section class="panel">
-<h2>1. Originaldatei auf deinem Gerät auswählen</h2>
-<p>MyHeritage / 23andMe SNP-Rohdaten im Text-/CSV-Format. Das Einlesen erfolgt ausschließlich im Browser-Arbeitsspeicher. Kein Upload. Nach dem ersten Einlesen kannst du die Originaldatei dauerhaft auf diesem Gerät merken – ohne Passwort.</p>
+<h2>1. Originaldatei nur beim erstmaligen Cloud-Import auswählen (falls nicht lokal gespeichert)</h2>
+<p>MyHeritage / 23andMe SNP-Rohdaten im Text-/CSV-Format. Das Einlesen erfolgt ausschließlich im Browser-Arbeitsspeicher. Der Import erfolgt zunächst im Browser. Erst der ausdrücklich betätigte Cloud-Upload überträgt die vollständigen Genotypen an deine eigene EU-Datenbank.</p>
 <label for="raw">SNP-Array-Datei (max. 80 MiB)</label>
 <input id="raw" type="file" accept=".txt,.tsv,.csv,text/plain,text/csv">
 <progress id="progress" value="0" max="100" hidden></progress>
@@ -66,5 +81,5 @@
 <small>Quellcode und Tests im öffentlichen GitHub-PR. Die DNA-Datei wird niemals in das GitHub-Repository übertragen.</small>
 </section>
 </main>
-<script type="module" src="./app.js?v=7"></script>
+<script type="module" src="./app.js?v=8"></script>
 </body></html>
