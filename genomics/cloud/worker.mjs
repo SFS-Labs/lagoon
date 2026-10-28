@@ -2,8 +2,38 @@
 // D1 EU; staged 256-shard import, no raw CSV committed to GitHub.
 const RS=/^rs[0-9]{1,15}$/i, ORIGIN="https://sfs-labs.github.io",E=new TextEncoder();
 const PANEL=[["rs601338","FUT2","serum B12"],["rs855791","TMPRSS6","serum iron"],["rs10741657","CYP2R1","vitamin D"],["rs2282679","GC","vitamin D binding"],["rs12785878","DHCR7","vitamin D"],["rs4988235","LCT","lactase"],["rs1801133","MTHFR","folate"],["rs1801131","MTHFR","folate"],["rs1799945","HFE","iron homeostasis"],["rs1800562","HFE","iron loading"]];
+// Audited public GRCh37 reference loci; private calls are never committed.
+const PINNED_REFERENCE={
+ rs855791:{gene:"TMPRSS6",chr:"22",pos:37462936,ref:"A",alt:"G",source:"https://www.ncbi.nlm.nih.gov/clinvar/314922001/"},
+ rs1801133:{gene:"MTHFR",chr:"1",pos:11856378,ref:"G",alt:"A",source:"https://www.ncbi.nlm.nih.gov/clinvar/variation/VCV000003520.60/"},
+ rs1801131:{gene:"MTHFR",chr:"1",pos:11854476,ref:"T",alt:"G",source:"https://www.ncbi.nlm.nih.gov/clinvar/variation/VCV000003521.123/"},
+ rs1799945:{gene:"HFE",chr:"6",pos:26091179,ref:"C",alt:"G",source:"https://www.ncbi.nlm.nih.gov/clinvar/RCV000394716/"},
+ rs4988235:{gene:"MCM6/LCT",chr:"2",pos:136608646,ref:"G",alt:"A",source:"https://pmc.ncbi.nlm.nih.gov/articles/PMC7615474/"}
+};
+const COMP={A:"T",T:"A",C:"G",G:"C"};
+function referenceQC(variant){
+ const rsid=variant?.rsid||null, locus=PINNED_REFERENCE[rsid];
+ const base={rsid,reference:locus||null,build:"GRCh37",clinically_validated:false};
+ if(!variant||variant.status!=="ARRAY_CALL_UNVERIFIED")
+  return {...base,status:"NO_CALL_OR_NOT_ON_ARRAY",reason:"Missing must never be treated as reference allele"};
+ if(!locus)return {...base,status:"REFERENCE_NOT_YET_VERIFIED",reason:"No verified forward reference for this locus"};
+ if(variant.chromosome!==locus.chr||variant.position!==locus.pos)
+  return {...base,status:"GRCH37_COORDINATE_MISMATCH",reason:"rsID or platform locus disagree"};
+ const genotype=variant.genotype;
+ if(typeof genotype!=="string"||!/^[ACGT]{2}$/.test(genotype))
+  return {...base,status:"INVALID_DIPLOID_BASES"};
+ const forward=[...genotype].every(a=>a===locus.ref||a===locus.alt);
+ const reverse=[...genotype].every(a=>COMP[a]===locus.ref||COMP[a]===locus.alt);
+ if(forward&&reverse)return {...base,status:"PALINDROMIC_STRAND_UNRESOLVED",reason:"Cannot infer forward effect allele dosage"};
+ if(forward)return {...base,status:"GRCH37_FORWARD_ALLELES_CONCORDANT",
+  forward_alt_allele_dosage:[...genotype].filter(a=>a===locus.alt).length,
+  reason:"Array genotype not independently confirmed; no clinical risk calculated"};
+ if(reverse)return {...base,status:"REVERSE_COMPLEMENT_CANDIDATE_UNVERIFIED",reason:"Never silently flip platform alleles"};
+ return {...base,status:"ALLELES_NOT_IN_REFERENCE_SET"};
+}
 const TOOLS=[
  {name:"genome_status",description:"Persistent cloud genotype database status. No genome upload required per query.",inputSchema:{type:"object",properties:{}}},
+ {name:"validate_reference_marker",description:"Validate one private cloud genotype against a pinned GRCh37 locus, reference/alternative alleles and orientation gates. Explicitly NON-clinical; missing/ambiguous returns abstention.",inputSchema:{type:"object",properties:{rsid:{type:"string"}},required:["rsid"]}},
  {name:"lookup_snp",description:"Query one private rsID genotype from EU D1; no biomarker diagnosis implied.",inputSchema:{type:"object",properties:{rsid:{type:"string"}},required:["rsid"]}},
  {name:"lookup_snps",description:"Query up to 25 private rsID genotypes from permanent cloud database.",inputSchema:{type:"object",properties:{rsids:{type:"array",items:{type:"string"},maxItems:25}},required:["rsids"]}},
  {name:"micronutrient_panel",description:"Research panel B12, iron, vitamin D, folate, lactase, not a clinically calibrated diagnosis.",inputSchema:{type:"object",properties:{}}},
@@ -36,6 +66,7 @@ async function query(ids,env){
 }
 async function runTool(name,args,env){
  if(name==="genome_status")return status(env);
+ if(name==="validate_reference_marker"){if(!valid(args.rsid))throw Error("Invalid public rsID");const q=await query([args.rsid],env);if(q.status!=="OK")return q;return referenceQC(q.variants[0]);}
  if(name==="lookup_snp")return query([args.rsid],env);
  if(name==="lookup_snps")return query(args.rsids,env);
  if(name==="micronutrient_panel"){const r=await query(PANEL.map(x=>x[0]),env);return {...r,markers:r.variants.map(v=>({...v,gene:PANEL.find(x=>x[0]===v.rsid)?.[1],phenotype:PANEL.find(x=>x[0]===v.rsid)?.[2]}))};}
