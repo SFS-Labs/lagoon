@@ -1,9 +1,14 @@
-# Lagoon Genomics: audited research core (experimental)
+# SFS Genomics — AI-Native Genomic Intelligence Platform
 
-> **Scope**: An executable, self-contained **local** genotype/research MCP module
-> added to pull request #1. The existing unrelated Stacks/Next.js lending app is
-> intentionally untouched. This is NOT a public hosted MCP endpoint, clinical
-> test, diagnostic device, or validated genomic risk model.
+**SFS Labs | Public engineering project**
+
+A modular genomics intelligence stack combining high-volume SNP intake, EU cloud storage, AI-accessible MCP tools, scientific source federation and evidence-validation gates.
+
+**Portfolio:** [System architecture, engineering competencies and verified status](PORTFOLIO.md) · [Live interface](https://sfs-labs.github.io/lagoon/) · [Cloud deployment status](cloud/DEPLOYMENT_STATUS.md)
+
+**Implementation reality:** This system is publicly inspectable, with a deployed Cloudflare Worker and D1 database. Public OAuth discovery is tested, but original-personal-genome cloud migration and authenticated mobile MCP calls are not yet fully verified. It is not a validated clinical diagnostic model.
+
+Below are the original research-core instructions and scientific limitations. The Python stdio MCP is one component of the larger cloud project; some original runtime instructions are historical.
 
 ## Correctness before prediction
 
