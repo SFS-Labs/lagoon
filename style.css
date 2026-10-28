@@ -48,3 +48,7 @@ textarea{font:inherit;resize:vertical;border-radius:8px;padding:12px;border:1px 
 .vault-restore{margin-top:20px;padding-top:14px;border-top:1px solid #8885}
 .vault-panel [hidden]{display:none!important}
 .version{display:block;margin-top:5px}
+
+#cloudOwnerToken{display:block;width:100%;padding:11px;border-radius:8px;border:1px solid #9998;font:inherit}
+#cloudMessage{font-size:.91rem;margin:12px 0;overflow-wrap:anywhere}
+#cloudProgress{width:100%}
