@@ -71,3 +71,19 @@ test('unauthorized MCP requests require token',async()=>{
  assert.equal(r.status,401);
  assert.match(r.headers.get('www-authenticate'),/resource_metadata=/);
 });
+
+test('D1 daily quota is surfaced as unavailable, never missing genotype',async()=>{
+ const env=mkEnv();
+ env.DB.prepare=()=>({async first(){throw new Error("D1_ERROR: Your account has exceeded D1's free tier daily row read limit.");}});
+ const req=new Request('https://genomics.test/mcp',{
+  method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+  body:JSON.stringify({jsonrpc:'2.0',id:5,method:'tools/call',params:{name:'genome_status',arguments:{}}})});
+ const res=await worker.fetch(req,env);
+ assert.equal(res.status,200);
+ const m=await res.json();
+ assert.equal(m.result.isError,true);
+ const item=JSON.parse(m.result.content[0].text);
+ assert.equal(item.status,'TEMPORARILY_UNAVAILABLE');
+ assert.equal(item.not_a_missing_genotype,true);
+ assert.equal(item.error,'D1_DAILY_ROW_READ_QUOTA_EXCEEDED');
+});
