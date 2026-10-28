@@ -6,7 +6,7 @@ A modular genomics intelligence stack combining high-volume SNP intake, EU cloud
 
 **Portfolio:** [System architecture, engineering competencies and verified status](PORTFOLIO.md) · [Live interface](https://sfs-labs.github.io/lagoon/) · [Cloud deployment status](cloud/DEPLOYMENT_STATUS.md)
 
-**Implementation reality:** This system is publicly inspectable, with a deployed Cloudflare Worker and D1 database. Public OAuth discovery is tested, but original-personal-genome cloud migration and authenticated mobile MCP calls are not yet fully verified. It is not a validated clinical diagnostic model.
+**Verified 2026-10-28:** Authenticated ChatGPT MCP calls and a completed EU Cloudflare D1 import were independently confirmed: 256 committed shards, totaling exactly 607,051 valid SNP calls. Scientific validation remains partial; five pinned GRCh37 reference loci now have reproducible abstention-first checks. D1 Free account-wide daily row-read limits can temporarily suspend queries. This is not a validated clinical diagnostic model. See [scientific validation protocol](SCIENTIFIC_VALIDATION_PROTOCOL.md).
 
 Below are the original research-core instructions and scientific limitations. The Python stdio MCP is one component of the larger cloud project; some original runtime instructions are historical.
 
