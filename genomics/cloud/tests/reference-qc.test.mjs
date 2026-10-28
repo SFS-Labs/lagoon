@@ -11,13 +11,12 @@ const ownerHash=createHash('sha256').update(token).digest('hex');
 function mkEnv(row) {
  const rows=row?[row]:[];
  const database={prepare(sql){
-  return {bind(...params){
-   return {async first(){
+  const first=async()=>{
     if(sql.includes('FROM genome_meta'))return {state:'READY',total_calls:1,build:'GRCh37',updated_at:'test'};
     if(sql.includes('FROM genome_shards'))return {payload:JSON.stringify(rows)};
     throw new Error('Unexpected database statement: '+sql);
-   }};
-  }};
+  };
+  return {first,bind(...params){return {first};}};
  }};
  return {DB:database,OWNER_HASH:ownerHash};
 }
