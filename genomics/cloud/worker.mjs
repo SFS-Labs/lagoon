@@ -103,7 +103,16 @@ async function mcp(req,env){
  if(m.method==="initialize")v={protocolVersion:"2025-06-18",capabilities:{tools:{listChanged:false}},serverInfo:{name:"lagoon-genomics-cloud",version:"1.0.0"}};
  else if(m.method==="ping")v={};
  else if(m.method==="tools/list")v={tools:TOOLS};
- else if(m.method==="tools/call"){try{const r=await runTool(m.params?.name,m.params?.arguments||{},env);v={content:[{type:"text",text:JSON.stringify(r)}],isError:false};}catch(e){v={content:[{type:"text",text:JSON.stringify({error:String(e.message).slice(0,120)})}],isError:true};}}
+ else if(m.method==="tools/call"){try{const r=await runTool(m.params?.name,m.params?.arguments||{},env);v={content:[{type:"text",text:JSON.stringify(r)}],isError:false};}catch(e){
+ const msg=String(e?.message||e);
+ const readQuota=/exceeded D1.s free tier daily row read limit/i.test(msg);
+ const writeQuota=/exceeded D1.s free tier daily row write limit/i.test(msg);
+ const err=readQuota||writeQuota
+  ?{error:readQuota?"D1_DAILY_ROW_READ_QUOTA_EXCEEDED":"D1_DAILY_ROW_WRITE_QUOTA_EXCEEDED",
+    status:"TEMPORARILY_UNAVAILABLE",reset:"midnight UTC",not_a_missing_genotype:true}
+  :{error:msg.slice(0,120)};
+ v={content:[{type:"text",text:JSON.stringify(err)}],isError:true};
+}}
  else return out({jsonrpc:"2.0",id:m.id,error:{code:-32601,message:"Unknown method"}});
  return out({jsonrpc:"2.0",id:m.id,result:v},200,req.headers.get("Origin"));
 }
