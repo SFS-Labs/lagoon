@@ -1,6 +1,7 @@
-import {parseArray,makeCandidateReport,searchImportedSnps} from "./analysis-core.mjs?v=7";
+import {parseArray,makeCandidateReport,searchImportedSnps} from "./analysis-core.mjs?v=8";
 import {rememberGenome,openRememberedGenome,hasRememberedGenome,forgetRememberedGenome,browserStorageStatus}
-  from "./device-vault.mjs?v=7";
+  from "./device-vault.mjs?v=8";
+import {getOwnerToken,setOwnerToken,uploadGenomeToCloud,queryCloudStatus} from "./cloud-upload.mjs?v=8";
 const $=id=>document.getElementById(id);
 let dataset=null,report=null,lookup=null;
 const de=new Intl.NumberFormat("de-DE");
@@ -13,7 +14,7 @@ function resetViews(){
   for(const name of ["copy","save","copyLookup"])$(name).disabled=true;
 }
 function buttons(yes){
-  for(const name of ["analyze","erase","lookup"])$(name).disabled=!yes;
+  for(const name of ["analyze","erase","lookup","cloudUploadButton"])$(name).disabled=!yes;
 }
 function metaPair(dl,k,v){
   const dt=document.createElement("dt"),dd=document.createElement("dd");
