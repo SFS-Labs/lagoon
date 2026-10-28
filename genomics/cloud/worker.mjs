@@ -17,7 +17,7 @@ async function pkce(v){return btoa(String.fromCharCode(...new Uint8Array(await c
 function header(origin,extra={}){const h=new Headers(extra);h.set("Cache-Control","no-store");h.set("X-Content-Type-Options","nosniff");if(origin===ORIGIN){h.set("Access-Control-Allow-Origin",ORIGIN);h.set("Access-Control-Allow-Headers","Authorization,Content-Type");h.set("Access-Control-Allow-Methods","GET,POST,PUT,OPTIONS");}return h;}
 function out(v,status=200,origin=""){return new Response(JSON.stringify(v),{status,headers:header(origin,{"Content-Type":"application/json; charset=utf-8"})});}
 function page(content,status=200){return new Response(content,{status,headers:header("",{"Content-Type":"text/html; charset=utf-8","Content-Security-Policy":"default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"})});}
-function bearer(req){const m=(req.headers.get("Authorization")||"").match(/^Bearer ([a-f0-9]{64})$/);return m?m[1]:"";}
+function bearer(req){const m=(req.headers.get("Authorization")||"").match(/^Bearer ([A-Za-z0-9_-]{43,200})$/);return m?m[1]:"";}
 async function isOwner(req,env){const s=bearer(req);return s&&await hash(s)===env.OWNER_HASH;}
 async function canRead(req,env){if(await isOwner(req,env))return true;const t=bearer(req);if(!t)return false;const x=await env.DB.prepare("SELECT expires_at FROM oauth_tokens WHERE token_hash=? AND kind='access'").bind(await hash(t)).first();return !!x&&x.expires_at>now();}
 const valid=id=>typeof id==="string"&&RS.test(id),bucket=id=>Number(BigInt(id.slice(2))%256n);
@@ -67,7 +67,7 @@ async function mcp(req,env){
  else if(m.method==="tools/list")v={tools:TOOLS};
  else if(m.method==="tools/call"){try{const r=await runTool(m.params?.name,m.params?.arguments||{},env);v={content:[{type:"text",text:JSON.stringify(r)}],isError:false};}catch(e){v={content:[{type:"text",text:JSON.stringify({error:String(e.message).slice(0,120)})}],isError:true};}}
  else return out({jsonrpc:"2.0",id:m.id,error:{code:-32601,message:"Unknown method"}});
- return out({jsonrpc:"2.0",id:m.id,result:v});
+ return out({jsonrpc:"2.0",id:m.id,result:v},200,req.headers.get("Origin"));
 }
 function redirectAllowed(uri){try{const u=new URL(uri);return u.protocol==="https:"&&!u.hash&&!u.username&&!u.password&&uri.length<700;}catch{return false;}}
 const param=async r=>(r.headers.get("content-type")||"").includes("application/json")?r.json():Object.fromEntries((await r.formData()).entries());
