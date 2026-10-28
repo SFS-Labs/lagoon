@@ -31,6 +31,25 @@ jobs:
         run: node --test genomics/web/tests/*.test.mjs
       - name: Independent Python-vs-browser genotype parser parity (offline synthetic only)
         run: python -m genomics.parity_check
+      - name: Cloud MCP script parse, no genetic data
+        run: |
+          node --check genomics/cloud/worker.mjs
+          node --check genomics/web/cloud-upload.mjs
+          node --check genomics/web/cloud-ui.mjs
+      - name: Real Cloudflare remote MCP health and OAuth discovery
+        if: matrix.python-version == '3.12'
+        continue-on-error: true
+        run: |
+          curl -fsS --retry 1 --max-time 15 https://lagoon-genomics-mcp.sfs-labs.workers.dev/health -o /tmp/genomics-health.json
+          curl -fsS --retry 1 --max-time 15 https://lagoon-genomics-mcp.sfs-labs.workers.dev/.well-known/oauth-authorization-server -o /tmp/genomics-oauth.json
+          python - <<'PY'
+          import json
+          status=json.load(open('/tmp/genomics-health.json'))
+          oauth=json.load(open('/tmp/genomics-oauth.json'))
+          assert status['service']=='lagoon-genomics-mcp'
+          assert 'S256' in oauth['code_challenge_methods_supported']
+          print('Live authenticated MCP discovery reachable; genome remains private')
+          PY
       - name: Syntax compile
         run: python -m compileall -q genomics
       - name: MCP initialisation smoke test
