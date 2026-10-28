@@ -57,8 +57,15 @@ async function runTool(name,args,env){
  }
  throw Error("Unknown tool");
 }
+function authChallenge(req){
+ const origin=new URL(req.url).origin;
+ return new Response(JSON.stringify({error:"authentication_required"}),{
+  status:401,headers:{"Content-Type":"application/json","Cache-Control":"no-store",
+   "WWW-Authenticate":'Bearer resource_metadata="'+origin+'/.well-known/oauth-protected-resource/mcp", scope="genome:read"'}
+ });
+}
 async function mcp(req,env){
- if(!await canRead(req,env))return new Response(JSON.stringify({error:"authentication_required"}),{status:401,headers:{"WWW-Authenticate":'Bearer resource="'+new URL(req.url).origin+'/mcp"',"Content-Type":"application/json"}});
+ if(!await canRead(req,env))return authChallenge(req);
  const m=await req.json();if(!m||typeof m!=="object")return out({error:"invalid_request"},400);
  if(!Object.hasOwn(m,"id"))return new Response(null,{status:202});
  let v;
@@ -169,7 +176,7 @@ export default {async fetch(req,env){
   if(p==="/authorize"&&["GET","POST"].includes(req.method))return authorize(req,env);
   if(p==="/token"&&req.method==="POST")return token(req,env);
   if(p==="/mcp"&&req.method==="POST")return mcp(req,env);
-  if(p==="/mcp")return out({error:"POST_required"},405);
+  if(p==="/mcp")return await canRead(req,env)?out({error:"POST_required"},405):authChallenge(req);
   if(p.startsWith("/v1/import/"))return upload(req,env,p);
   return out({error:"not_found"},404);
  }catch(e){return out({error:"server_error",kind:e.name||"Error"},500,req.headers.get("Origin"));}
