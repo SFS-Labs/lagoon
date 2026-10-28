@@ -1,0 +1,1 @@
+*.raw\n*.genome\n*.vcf\n*.vcf.gz\n*genotype*.txt\n*genome*.txt\n*.bam\n*.cram\n*.fastq\n*.fastq.gz\n

@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="referrer" content="no-referrer"><meta name="color-scheme" content="light dark">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src https://lagoon-genomics-mcp.sfs-labs.workers.dev; img-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'; frame-ancestors 'none'">
+<title>SFS Genomics | AI-Native Genomic Intelligence</title>
+<meta name="description" content="SFS Genomics: a verified 607k-call mobile genomic data pipeline with Cloudflare EU D1, OAuth MCP for ChatGPT and reproducible scientific evidence validation.">
+<meta property="og:title" content="SFS Genomics | AI-Native Genomic Intelligence Platform">
+<meta property="og:description" content="607k SNP calls. Cloudflare EU D1. Authenticated MCP in ChatGPT. Evidence-aware research and reproducible verification.">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="stylesheet" href="./style.css?v=8">
+</head>
+<body>
+<header class="brand-header">
+  <p class="eyebrow">SFS LABS / GENOMICS INTELLIGENCE</p>
+  <h1>SFS <span class="brand-accent">Genomics</span></h1>
+  <p class="tagline">AI-Native Genomic Intelligence Platform</p>
+  <p class="sub">A verified mobile-to-cloud genomics system: 607k accepted SNP calls, persistent EU storage, authenticated ChatGPT MCP and evidence-aware research tooling.</p>
+  <div class="brand-pills"><span>Genomic Data Engineering</span><span>AI &amp; MCP Infrastructure</span><span>Population Genetics</span><span>Evidence Validation</span></div>
+  <div class="brand-links"><a href="https://sfs-labs.gitbook.io/sfs-labs-docs/ai-docs/featured-engineering-project-sfs-genomics/sfs-genomics" rel="noopener noreferrer" target="_blank">Full engineering case study</a><a href="https://github.com/SFS-Labs/lagoon/pull/1" rel="noopener noreferrer" target="_blank">Source &amp; implementation</a><a href="https://github.com/SFS-Labs/lagoon/actions/workflows/genomics-ci.yml" rel="noopener noreferrer" target="_blank">Verification &amp; CI</a></div>
+  <small class="version">SFS Genomics · Genomic Intelligence Stack · Version 1.0</small>
+</header>
+<main>
+<section class="panel" aria-labelledby="overview-title">
+  <h2 id="overview-title">One genomic data layer. Multiple intelligence workflows.</h2>
+  <p>Reference-aware variant queries, cloud persistence, scientific provenance, LD quality control and AI-facing MCP tools are designed as interoperable components of a broader genomics intelligence stack.</p>
+  <p class="marker-meta">Public code and reproducible synthetic tests are visible in GitHub. Individual genotype records, cloud credentials and personal interpretations are not published on this site. Research software; not a validated clinical diagnostic system.</p>
+</section>
+<details class="operator-console">
+  <summary>Open private data console <span>Import · Cloud database · SNP explorer</span></summary>
+  <div class="operator-body">
+<section class="panel vault-panel">
+<h2>Cloud-Datenbank – einmalig übertragen</h2>
+<p>Deine vollständige Genotypdatei wird in der EU-Cloudflare-D1-Datenbank gespeichert. <strong>Nach diesem einen Import liest ChatGPT die Daten direkt über den authentifizierten Remote-MCP.</strong> Du musst die CSV später nicht erneut hochladen.</p>
+<label for="cloudOwnerToken">Einmaliger privater Einrichtungscode</label>
+<input id="cloudOwnerToken" type="password" autocomplete="off" spellcheck="false" placeholder="64-stelliger Einrichtungscode">
+<div class="actions">
+<button id="cloudRememberToken">Cloud-Zugang auf diesem Gerät speichern</button>
+<button id="cloudStatusButton">Cloud-Datenbankstatus prüfen</button>
+<button id="cloudUploadButton" class="primary" disabled>Gesamten Genomdatensatz einmalig in die Cloud übertragen</button>
+</div>
+<progress id="cloudProgress" value="0" max="100" hidden></progress>
+<output id="cloudMessage" role="status" aria-live="polite">Cloud-Upload noch nicht gestartet. Bestehende lokal gespeicherte SNPs können ohne erneuten Dateiimport verwendet werden.</output>
+<p class="marker-meta">MCP-Endpunkt: <code>https://lagoon-genomics-mcp.sfs-labs.workers.dev/mcp</code></p>
+<p class="marker-meta">Sicherheit: Cloud-Abfragen erfolgen über OAuth, der Einrichtungscode wird nur einmal für den Upload und die erstmalige Kontoverbindung benötigt. Zugriff auf den Code oder das verknüpfte OAuth-Token ermöglicht Zugriff auf Genotypen. Die Cloud-Datenbank ersetzt den lokalen Browser-Tresor als dauerhafte Hauptdatenquelle.</p>
+</section>
+<section class="panel">
+<h2>1. Originaldatei nur beim erstmaligen Cloud-Import auswählen (falls nicht lokal gespeichert)</h2>
+<p>MyHeritage / 23andMe SNP-Rohdaten im Text-/CSV-Format. Das Einlesen erfolgt ausschließlich im Browser-Arbeitsspeicher. Der Import erfolgt zunächst im Browser. Erst der ausdrücklich betätigte Cloud-Upload überträgt die vollständigen Genotypen an deine eigene EU-Datenbank.</p>
+<label for="raw">SNP-Array-Datei (max. 80 MiB)</label>
+<input id="raw" type="file" accept=".txt,.tsv,.csv,text/plain,text/csv">
+<progress id="progress" value="0" max="100" hidden></progress>
+<output id="notice" role="status" aria-live="polite">Noch keine DNA-Datei verarbeitet.</output>
+<div id="qcDetails" class="qc-details" hidden></div>
+<small>Akzeptiert rsid/chromosome/position/genotype oder result. Dateien anderer Genome-Builds werden für genetische Interpretation gesperrt.</small>
+</section>
+<section class="panel vault-panel" aria-labelledby="vault-heading">
+<h2 id="vault-heading">2. Einmal speichern, danach automatisch öffnen</h2>
+<p>Speichere deine vollständige Genotypdatei <strong>einmalig</strong> auf deinem iPhone. Danach wird sie beim Öffnen der Website automatisch geladen – <strong>ohne Passwort, ohne erneuten Dateiimport</strong>.</p>
+<output id="vaultStatus" role="status" aria-live="polite">Prüfe lokal gespeicherte DNA-Datei …</output>
+<div class="actions">
+<button id="rememberGenome" class="primary" disabled>Einmalig auf diesem Gerät merken</button>
+<button id="forgetGenome">Dauerhafte Speicherung löschen</button>
+</div>
+<p class="marker-meta">Die gespeicherte Datei wird mit AES-256-GCM verschlüsselt. Der automatisch verwendete Schlüssel bleibt in diesem Browser gespeichert und ist nicht exportierbar. Das schützt nicht vor Zugriff durch Programme bzw. Webseiten-Code desselben Ursprungs oder Personen mit Zugriff auf deinen entsperrten Browser. Keine Datenübertragung an GitHub.</p>
+<p class="warn"><strong>Datensicherung:</strong> Die Original-CSV in der iPhone-App „Dateien“ behalten. iOS kann Browserdaten löschen; auch ein Wechsel zwischen Safari, In-App-Browser und Home-Screen-App kann unterschiedliche Speicherbereiche bedeuten. Die Speicherung ist daher bequem, aber kein garantiert dauerhaftes Backup.</p>
+</section>
+<section class="panel">
+<h2>3. Recherchekandidaten</h2>
+<label for="nutrient">Fachgebiet</label>
+<select id="nutrient"><option value="all">Alle vorhandenen Forschungsmarker</option>
+<option value="b12">Vitamin B12</option><option value="iron">Eisen</option>
+<option value="vitamin_d">Vitamin D</option><option value="folate">Folat</option>
+<option value="lactose">Laktase</option></select>
+<div class="actions"><button class="primary" id="analyze" disabled>Lokale Auswertung</button>
+<button id="copy" disabled>Ausgewählte Daten für ChatGPT kopieren</button>
+<button id="save" disabled>Bericht als JSON sichern</button>
+<button id="erase" disabled>Aktuelle Sitzung sperren</button></div>
+<p class="warn"><strong>Datenschutz:</strong> Erst das bewusste Kopieren/Teilen überträgt ausgewählte Genotypen an ChatGPT oder andere Dienste. Die bloße Analyse tut das nicht.</p>
+<output id="summary"></output>
+<div id="results" class="marker-list" role="list" aria-label="Forschungsmarker"></div>
+</section>
+<section class="panel">
+<h2>4. Alle SNPs einzeln oder in Gruppen abfragen</h2>
+<p>Durchsuche alle eingelesenen rsIDs, nicht nur die zehn Forschungsmarker. Genotypen bleiben lokal. Mehrere rsIDs mit Leerzeichen, Komma oder Zeilenumbruch trennen (maximal 100).</p>
+<label for="rsSearch">rsID-Suche</label>
+<textarea id="rsSearch" rows="2" spellcheck="false" autocapitalize="none" placeholder="rs855791, rs4988235, rs1801133"></textarea>
+<div class="actions">
+<button id="lookup" disabled>Im gesamten Rohdatensatz suchen</button>
+<button id="copyLookup" disabled>Nur ausgewählte Treffer kopieren</button>
+</div>
+<output id="lookupSummary" role="status" aria-live="polite"></output>
+<div id="lookupResults" class="marker-list" role="list" aria-label="Individuelle SNP-Abfrage"></div>
+</section>
+<section class="panel">
+<h2>5. Interpretationsgrenzen</h2>
+<p>Das Tool diagnostiziert weder Malabsorption noch einen Mikronährstoffmangel. Assoziationen mit Serumwerten sind nicht gleichbedeutend mit intestinaler Resorption. Fehlende SNPs, HLA-Haplotypen und seltene Krankheitsvarianten sind nicht negativ getestet.</p>
+<p>Für persönliche Schlussfolgerungen braucht es zusätzliche Referenzallel- und Strangprüfung, populationsspezifische Studien sowie ggf. Laborwerte. Alle gezeigten Marker sind Forschungsansätze und keine bestätigten klinischen Befunde.</p>
+<small>Quellcode und Tests im öffentlichen GitHub-PR. Die DNA-Datei wird niemals in das GitHub-Repository übertragen.</small>
+</section>
+  </div>
+</details>
+</main>
+<script type="module" src="./app.js?v=8"></script>
+</body></html>

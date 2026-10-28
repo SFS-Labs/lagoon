@@ -1,0 +1,91 @@
+name: Genomics research core tests
+on:
+  pull_request:
+    paths:
+      - 'genomics/**'
+      - '.github/workflows/genomics-ci.yml'
+  push:
+    paths:
+      - 'genomics/**'
+      - '.github/workflows/genomics-ci.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Synthetic fixture tests only
+        run: python -m unittest discover -s genomics/tests -v
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: iPhone PWA browser SNP engine, privacy and 609346-row benchmark
+        run: node --test genomics/web/tests/*.test.mjs
+      - name: Independent Python-vs-browser genotype parser parity (offline synthetic only)
+        run: python -m genomics.parity_check
+      - name: Cloud MCP GRCh37 reference QC offline tests (synthetic only)
+        run: node --test genomics/cloud/tests/*.test.mjs
+      - name: Cloud MCP script parse, no genetic data
+        run: |
+          node --check genomics/cloud/worker.mjs
+          node --check genomics/web/cloud-upload.mjs
+          node --check genomics/web/cloud-ui.mjs
+      - name: Real Cloudflare remote MCP health and OAuth discovery
+        if: matrix.python-version == '3.12'
+        continue-on-error: true
+        run: |
+          curl -fsS --retry 1 --max-time 15 https://lagoon-genomics-mcp.sfs-labs.workers.dev/health -o /tmp/genomics-health.json
+          curl -fsS --retry 1 --max-time 15 https://lagoon-genomics-mcp.sfs-labs.workers.dev/.well-known/oauth-authorization-server -o /tmp/genomics-oauth.json
+          python - <<'PY'
+          import json
+          status=json.load(open('/tmp/genomics-health.json'))
+          oauth=json.load(open('/tmp/genomics-oauth.json'))
+          assert status['service']=='lagoon-genomics-mcp'
+          assert 'S256' in oauth['code_challenge_methods_supported']
+          print('Live authenticated MCP discovery reachable; genome remains private')
+          PY
+      - name: Syntax compile
+        run: python -m compileall -q genomics
+      - name: MCP initialisation smoke test
+        run: |
+          printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","clientInfo":{"name":"ci","version":"1"},"capabilities":{}}}' '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' | python -m genomics.mcp mcp > /tmp/mcp-responses.jsonl
+          python -c 'import json; a=[json.loads(x) for x in open("/tmp/mcp-responses.jsonl")]; assert a[0]["result"]["serverInfo"]["name"] == "lagoon-genomics-research"; assert len(a[1]["result"]["tools"]) == 12'
+      - name: Public research-provider live probe (diagnostic; no genotypes)
+        if: matrix.python-version == '3.12'
+        continue-on-error: true
+        run: |
+          python - <<'PY'
+          from genomics.research import query_rsid
+          result = query_rsid('rs855791')
+          statuses = {k: v['status'] for k, v in result['sources'].items()}
+          print('Public rsID-only API statuses:', statuses)
+          if not any(status == 'ok' for status in statuses.values()):
+              raise SystemExit('All public upstream sources unavailable; investigate before production')
+          PY
+
+      - name: Public GWAS v2 response schema probe (no genotypes)
+        if: matrix.python-version == '3.12'
+        continue-on-error: true
+        run: |
+          python - <<'PY'
+          from genomics.research import get_json, URLS
+          p = get_json(URLS['gwas_catalog_v2'], {'rs_id':'rs855791','page':0,'size':2})
+          print('GWAS_ROOT_KEYS:', list(p)[:15] if isinstance(p,dict) else type(p).__name__)
+          emb = p.get('_embedded', {}) if isinstance(p,dict) else {}
+          print('GWAS_EMBEDDED_KEYS:', list(emb))
+          for key, items in emb.items():
+              if isinstance(items,list) and items:
+                  first = items[0]
+                  print('GWAS_FIRST_RECORD_KEYS:', list(first) if isinstance(first,dict) else type(first).__name__)
+                  print('GWAS_FIRST_FIELD_TYPES:', {k:type(v).__name__ for k,v in first.items()} if isinstance(first,dict) else {})
+                  print('GWAS_PUBLIC_SNP_FIELDS:', {k:str(v)[:300] for k,v in first.items() if any(x in k.lower() for x in ('rs','snp','variant','strongest'))} if isinstance(first,dict) else {})
+                  break
+          PY

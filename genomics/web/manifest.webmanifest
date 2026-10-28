@@ -1,0 +1,10 @@
+{
+  "name": "SFS Genomics — AI-Native Genomic Intelligence",
+  "short_name": "SFS Genomics",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#071526",
+  "theme_color": "#0e345e",
+  "description": "SFS Labs: modular genomic intelligence platform with AI-accessible MCP tools, population genetics and evidence-aware data infrastructure."
+}

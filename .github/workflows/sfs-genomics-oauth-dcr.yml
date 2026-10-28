@@ -1,0 +1,50 @@
+name: SFS Genomics OAuth DCR interoperability
+on:
+  pull_request:
+    paths:
+      - 'genomics/cloud/**'
+      - '.github/workflows/sfs-genomics-oauth-dcr.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  auth-discovery:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Exercise public OAuth metadata, MCP 401 challenge and DCR registration
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from "node:assert/strict";
+          const base="https://lagoon-genomics-mcp.sfs-labs.workers.dev";
+          const timeout=AbortSignal.timeout(18000);
+          const mcp=await fetch(base+"/mcp",{signal:timeout});
+          console.log("PUBLIC MCP GET:",mcp.status,mcp.headers.get("content-type"),mcp.headers.get("www-authenticate"),(await mcp.clone().text()).slice(0,280));
+          assert.equal(mcp.status,401,"unauthenticated /mcp GET must trigger OAuth");
+          const challenge=mcp.headers.get("www-authenticate")||"";
+          assert.ok(challenge.includes('resource_metadata="'+base+'/.well-known/oauth-protected-resource/mcp"'),"resource_metadata discovery missing");
+          const protectedRes=await fetch(base+"/.well-known/oauth-protected-resource/mcp");
+          assert.equal(protectedRes.status,200);
+          const protectedJSON=await protectedRes.json();
+          assert.equal(protectedJSON.resource,base+"/mcp");
+          assert.deepEqual(protectedJSON.authorization_servers,[base]);
+          const discovery=await fetch(base+"/.well-known/oauth-authorization-server");
+          assert.equal(discovery.status,200);
+          const meta=await discovery.json();
+          assert.equal(meta.issuer,base);
+          assert.equal(meta.registration_endpoint,base+"/register");
+          assert.ok(meta.code_challenge_methods_supported?.includes("S256"));
+          assert.ok(meta.token_endpoint_auth_methods_supported?.includes("none"));
+          const registration=await fetch(meta.registration_endpoint,{
+            method:"POST",headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({client_name:"SFS Genomics Public OAuth CI",
+              redirect_uris:["https://chatgpt.com/connector/oauth/sfs-genomics-ci"],
+              token_endpoint_auth_method:"none"})
+          });
+          assert.equal(registration.status,201,"Dynamic Client Registration must work");
+          const client=await registration.json();
+          assert.ok(typeof client.client_id==="string"&&client.client_id.length>16);
+          assert.equal(client.token_endpoint_auth_method,"none");
+          assert.deepEqual(client.redirect_uris,["https://chatgpt.com/connector/oauth/sfs-genomics-ci"]);
+          console.log("PASS: DCR registered a public test client, 401 resource_metadata challenge and OAuth PKCE discovery validated.");
+          NODE

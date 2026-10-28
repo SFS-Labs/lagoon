@@ -1,0 +1,73 @@
+
+:root{font-family:system-ui,-apple-system,sans-serif;color-scheme:light dark}
+*{box-sizing:border-box}body{max-width:850px;margin:auto;padding:16px 16px 80px;line-height:1.5}
+h1{font-size:1.65rem;line-height:1.2}h2{font-size:1.12rem}
+main{display:grid;gap:16px}.panel{border:1px solid #9997;border-radius:13px;padding:16px}
+small,.sub{opacity:.78}label{display:block;margin:8px 0;font-weight:600}
+button,select,input[type=file]{font:inherit;max-width:100%}button,select{padding:10px 12px;border-radius:8px;border:1px solid #9997}
+button{cursor:pointer}button:disabled{opacity:.35}button.primary{background:#154d84;color:#fff;border-color:#154d84}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+output{display:block;white-space:pre-wrap;overflow-wrap:anywhere}
+progress{width:100%;height:14px}ul{padding-left:20px}
+table{width:100%;border-collapse:collapse;font-size:.89rem}
+th,td{padding:9px 5px;border-bottom:1px solid #8885;text-align:left;overflow-wrap:anywhere}
+table td:nth-child(1){font-family:ui-monospace,monospace}
+.scroller{overflow-x:auto}th{font-weight:700}
+.warn{border-left:4px solid #ba6b1d;padding-left:12px}
+#notice{min-height:2em}a{color:inherit}
+@media(prefers-color-scheme:dark){button.primary{background:#307cc2}}
+
+/* iPhone layout: stacked findings instead of narrow five-column table */
+body{width:100%;overflow-x:hidden}
+main,.panel,.marker-list{min-width:0}
+input[type=file],select,textarea{max-width:100%;width:100%}
+textarea{font:inherit;resize:vertical;border-radius:8px;padding:12px;border:1px solid #9997}
+.actions button{max-width:100%;min-height:44px}
+.marker-list{display:grid;grid-template-columns:1fr;gap:10px;margin-top:12px}
+.marker-card{min-width:0;border:1px solid #7775;border-radius:11px;padding:13px;display:grid;gap:8px}
+.marker-top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.marker-title{font-size:1rem;font-weight:700;margin:0;overflow-wrap:normal;word-break:normal}
+.marker-title code{white-space:nowrap}
+.marker-gene{color:inherit;opacity:.76;font-weight:500;margin-left:8px}
+.marker-gt{padding:3px 9px;border-radius:99px;background:#8883;font-size:.8rem}
+.marker-desc{font-size:.9rem;overflow-wrap:break-word}
+.marker-meta{font-size:.79rem;opacity:.8;overflow-wrap:break-word}
+.marker-card a{font-size:.86rem;overflow-wrap:normal;white-space:normal}
+.marker-actions{display:flex;gap:14px;flex-wrap:wrap}
+.qc-details{margin-top:10px;border-top:1px solid #7775;padding-top:10px}
+.qc-details dl{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;margin:0;font-size:.88rem}
+.qc-details dt,.qc-details dd{margin:0}
+.qc-details dd{text-align:right;font-variant-numeric:tabular-nums}
+@media(min-width:720px){.marker-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.vault-panel{border-color:#387aa675}
+.vault-panel output{padding:10px 0;font-weight:600}
+.vault-panel input[type=file]{display:block;width:100%;min-width:0}
+
+.vault-panel button{margin:7px 0}
+.vault-restore{margin-top:20px;padding-top:14px;border-top:1px solid #8885}
+.vault-panel [hidden]{display:none!important}
+.version{display:block;margin-top:5px}
+
+#cloudOwnerToken{display:block;width:100%;padding:11px;border-radius:8px;border:1px solid #9998;font:inherit}
+#cloudMessage{font-size:.91rem;margin:12px 0;overflow-wrap:anywhere}
+#cloudProgress{width:100%}
+
+/* SFS Genomics identity — compact, technical, responsive portfolio presentation */
+.brand-header{padding:24px 2px 28px;border-bottom:1px solid #8897ad5c;margin-bottom:18px}
+.brand-header .eyebrow{font:700 .72rem ui-monospace,SFMono-Regular,monospace;letter-spacing:.13em;text-transform:uppercase;color:#31b3ce}
+.brand-header h1{font-size:clamp(2rem,7vw,3.4rem);letter-spacing:-.055em;line-height:1.05;margin:12px 0 10px;font-weight:760}
+.brand-accent{color:#33bdd2}
+.brand-header .tagline{font-size:clamp(1.06rem,3.5vw,1.38rem);font-weight:640;margin:8px 0 15px}
+.brand-header .sub{max-width:700px;font-size:.98rem;opacity:.88;line-height:1.65}
+.brand-pills{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0 16px}
+.brand-pills span{border:1px solid #3399b25c;border-radius:100px;padding:5px 11px;font-size:.78rem}
+.brand-links{display:flex;gap:20px;flex-wrap:wrap;margin:8px 0 15px}
+.brand-links a{font-size:.86rem;font-weight:600;color:inherit}
+.operator-console{border:1px solid #658c9d82;border-radius:14px;min-width:0;margin:2px 0 20px}
+.operator-console>summary{cursor:pointer;padding:19px;font-size:1.01rem;font-weight:680}
+.operator-console>summary span{font-size:.75rem;font-weight:400;opacity:.8;display:block;margin-top:5px}
+.operator-console[open]>summary{border-bottom:1px solid #658c9d82}
+.operator-body{display:grid;gap:16px;padding:14px}
+.operator-body>.panel{min-width:0}
+@media(min-width:720px){.brand-header{padding-top:35px}.operator-body{padding:18px}}
