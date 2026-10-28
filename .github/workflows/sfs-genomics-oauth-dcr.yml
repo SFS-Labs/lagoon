@@ -19,6 +19,7 @@ jobs:
           const base="https://lagoon-genomics-mcp.sfs-labs.workers.dev";
           const timeout=AbortSignal.timeout(18000);
           const mcp=await fetch(base+"/mcp",{signal:timeout});
+          console.log("PUBLIC MCP GET:",mcp.status,mcp.headers.get("content-type"),mcp.headers.get("www-authenticate"),(await mcp.clone().text()).slice(0,280));
           assert.equal(mcp.status,401,"unauthenticated /mcp GET must trigger OAuth");
           const challenge=mcp.headers.get("www-authenticate")||"";
           assert.ok(challenge.includes('resource_metadata="'+base+'/.well-known/oauth-protected-resource/mcp"'),"resource_metadata discovery missing");
